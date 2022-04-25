@@ -43,7 +43,6 @@ to restrict to supported operations, when operating an AD9547.
 * `calib.py`: is critical, calibrates clock and internal synthesizers. 
 Action required depending on previous user actions and current settings. 
 * `distrib.py`: is critical, controls clock distribution and output signals
-* `misc.py`: miscellaneous / optionnal stuff
 * `power-down.py` : power saving and management utility
 * `profile.py`: very useful, loads / dumps a register map preset,
 as desribed in application note
@@ -160,25 +159,26 @@ if ret.exitcode == 0: # OK
    status['info']['vendor'] # eval() is way cool!
 ```
 
-## Calibration script
+## Reset script
 
-`calib.py` allows easy & quick chipset (re)calibration.   
-
-It is required to perform a calibration at boot time.  
-It is required to perform an analog Pll (re)calibration anytime
-we recover from a sys clock power down.
-
-* Perform complete (re)calibration
+`reset.py` to perform quick reset operations
 
 ```shell
-calib.py --all 0 0x4A
+# clear all asserted IRQs
+reset.py 0 0x4A --irq
+# reset tuning word history + watchdog timer 
+reset.py 0 0x4A --watchdog --tuning
 ```
 
-* Perform only a sys clock (re)calibration
-(1st step in application note)
+* `reset.py -h` for complete list of features
+
+## Calibration script
+
+`calib.py` initializes the `sys clock` calibration routine.
 
 ```shell
-calib.py --sysclk 0 0x4A
+calib.py 0 0x4A
+status.py 0 0x4A --sysclk
 ```
 
 ## Clock distribution
