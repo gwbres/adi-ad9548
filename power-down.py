@@ -147,7 +147,7 @@ def main (argv):
             else:
                 reg |= 0x80
         reg = read_data (handle, address, 0x0500)
-    write_data(handle, address, 0x000F, 0x01) # I/O update
+    write_data(handle, address, 0x0005, 0x01) # I/O update
 
 if __name__ == "__main__":
     main(sys.argv[1:])
