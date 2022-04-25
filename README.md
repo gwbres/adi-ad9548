@@ -50,37 +50,26 @@ as desribed in application note
 * `status.py` : general status monitoring, including on board temperature,
 sensors and IRQ flags
 
-## Register map profiles
+## Register map
 
-Profiles describe the register map entirely.  
-It is possible to create a register map profile using the official A&D graphical tool (`export` feature).  
-
-One can load such a profile (.json format) with the `profile.py` utility.   
-`i2c` bus number (integer number) and slave address (hex) must be specified:
-
-```shell
-profile.py -h
-
-# loading the AD9546 example profile (on bus #0 @0x48)
-profile.py 0 0x48 --load example.json
-
-# loading another profile (on bus #1 0x4A)
-profile.py 1 0x4A --load /tmp/map.json
-```
-
-A&D graphical interface can load a register map (`import` feature).   
-One can dump the current chipset map with 
+`regmap.py` allows the user to quickly load an exported
+register map from the official A&D graphical tool.
+* Support format is `json`.
+* `i2c` bus must be specified
+* `i2c slave address` must be specified
 
 ```shell
-profile.py 0 0x55 --dump map.json
-profile.py 1 0xAA --dump /tmp/map.json
+regmap.py -h
+# load a register map (on bus #0 @0x48)
+regmap.py 0 0x48 --load test.json
 ```
 
-* Disable the progress bar (quiet stdout) with the `--quiet` flag:
+Export current register map to open it in A&D graphical tools:
 ```shell
-profile.py 0 0x55 --quiet --load map.json
-profile.py 1 0xAA --quiet --dump map.json
+regmap.py --dump /tmp/output.json 0 0x48
 ```
+
+* Use `--quiet` in both cases to disable the progress bar
 
 ## Status script
 
@@ -237,6 +226,66 @@ control.
 distrib.py --q-sync 0 0x48
 # manual Q Sync on channel 1
 distrib.py --q-sync --channel 1 0 0x48
+```
+
+## Profile
+
+AD9547,48 supports up to 8 profiles.  
+A profile comprises:
+
+* the expected input period
+* input signal constraints
+* input signal quality constraints
+* a loop filter profile (4 coefficients: alpha, beta, delta, gamma)
+
+For the loop filter coefficients, the script accepts fractionnal data
+directly and converts them internally.
+
+The script only supports reading/writing one profile at a time.
+
+* `--read n` : read current profile `n` (starting at 0) stored internally.
+Example:
+
+```shell
+# Read current 2nd profile storage
+profile.py --read 1 
+# outputs all values
+```
+
+* `--load n` : load settings into `n` storage location (starting at 0).
+The set of value(s) to be loaded must be specified.
+Example:
+
+```shell
+# define a new profile #0
+profile.py 0 0x48 --load 1 \
+    # reference period in [s] 
+    --period 10E-9 \
+    # inner tolerance
+    --inner 0.1 \
+    # outter tolerance 
+    --outter 0.1 \
+    # validation timer [s]
+    --validation 100E-4 \
+    # redetect timer [s]
+    --redetect 100E-3 \ 
+    # filter coefficients
+    --alpha 100E-3 \
+    --alpha 12735446E-3 \
+    --beta 698672E-5 \
+    --delta 750373E-5 \
+    --gamma 2015399E-3
+```
+
+All parameters are optionnal,
+in this example, only `--alpha` and `--outer` tolerance
+get loaded
+
+```shell
+# complete profile #1 redefinition
+profile.py 0 0x48 --load 1 \
+    --outter 0.1 \
+    --alpha 100E-3
 ```
 
 ## Reset script
