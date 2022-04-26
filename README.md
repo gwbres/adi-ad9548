@@ -1,5 +1,7 @@
 # ADI-AD9548 
 
+[![Python application](https://github.com/gwbres/adi-ad9548/actions/workflows/python-app.yml/badge.svg)](https://github.com/gwbres/adi-ad9548/actions/workflows/python-app.yml)
+
 Set of tools to interact & program AD9548,AD9547 integrated circuits, by Analog Devices.
 
 Use these tools to interact with newer chipsets
