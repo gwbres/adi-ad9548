@@ -2,8 +2,7 @@
 #################################################################
 # Guillaume W. Bres, 2022          <guillaume.bressaix@gmail.com>
 #################################################################
-# reset.py
-# small script to quickly reset the device 
+# reset.py: reset AD9548,47 device
 #################################################################
 import sys
 import argparse
@@ -61,30 +60,30 @@ def main (argv):
     if args.irq:
         reg = read_data(handle, address, 0x0A03)
         reg &= 0xFD
-        write_data(handle, addess, 0x0A03, r | 0x02)
+        write_data(handle, addresss, 0x0A03, r | 0x02)
     if args.watchdog:
         reg = read_data(handle, address, 0x0A03)
         reg &= 0xFE
-        write_data(handle, addess, 0x0A03, reg | 0x01)
+        write_data(handle, addresss, 0x0A03, reg | 0x01)
     if args.lf:
         reg = read_data(handle, address, 0x0A03)
         reg &= 0xBF
-        write_data(handle, addess, 0x0A03, reg | 0x40)
+        write_data(handle, addresss, 0x0A03, reg | 0x40)
     if args.cci:
         reg = read_data(handle, address, 0x0A03)
         reg &= 0xDF
-        write_data(handle, addess, 0x0A03, reg | 0x20)
+        write_data(handle, addresss, 0x0A03, reg | 0x20)
     if args.phase:
         reg = read_data(handle, address, 0x0A03)
         reg &= 0xEF
-        write_data(handle, addess, 0x0A03, reg | 0x10)
+        write_data(handle, addresss, 0x0A03, reg | 0x10)
     if args.autosync:
         reg = read_data(handle, address, 0x0A03)
         reg &= 0xF7
-        write_data(handle, addess, 0x0A03, reg | 0x08)
+        write_data(handle, addresss, 0x0A03, reg | 0x08)
     if args.history:
         reg = read_data(handle, address, 0x0A03)
         reg &= 0xFB
-        write_data(handle, addess, 0x0A03, reg | 0x04)
+        write_data(handle, addresss, 0x0A03, reg | 0x04)
 if __name__ == "__main__":
     main(sys.argv[1:])
