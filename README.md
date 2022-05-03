@@ -9,6 +9,8 @@ Use these tools to interact with newer chipsets
 [AD9546/45](https://github.com/gwbres/adi-ad9546)
 
 These scripts are not Windows compatible.   
+These scripts expect a `/dev/i2c-X` entry, they do not manage the device
+through SPI at the moment.
 
 ## Install 
 
