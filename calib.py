@@ -2,10 +2,7 @@
 #################################################################
 # Guillaume W. Bres, 2022          <guillaume.bressaix@gmail.com>
 #################################################################
-# calib.py
-# small script to trigger an AD9547,AD9548 calibration
-# it is required to manually trigger a calibration every time
-# the VCO frequency is modified by User.
+# calib.py: calibration script
 #################################################################
 import sys
 import argparse
@@ -23,7 +20,7 @@ def read_data (handle, dev, addr):
     return data
 
 def main (argv):
-    parser = argparse.ArgumentParser(description="AD9547/48 calibration tool")
+    parser = argparse.ArgumentParser(description="AD9548 calibration tool")
     parser.add_argument(
         "bus",
         help="I2C bus",
@@ -37,8 +34,8 @@ def main (argv):
     handle = SMBus()
     handle.open(int(args.bus))
     address = int(args.address, 16)
-    read = read_data(handle, address, 0x0A02)
-    write_data(handle, address, 0x0A02, 0x01) # sys clock cal.
+    r = read_data(handle, address, 0x0A02)
+    write_data(handle, address, 0x0A02, r | 0x01) # request cal 
     write_data(handle, address, 0x0005, 0x01) # I/O update
 
 if __name__ == "__main__":

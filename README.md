@@ -33,8 +33,8 @@ pip3 install -r requirements.txt
 * Each application comes with an `-h` help menu.  
 Refer to help menu for specific information. 
 * Flags order does not matter
-* `flag` is mandatory
-* `--flag` describe an optionnal flag, action will not be performed if not passed
+* `flag` is a mandatory flag
+* `--flag` is an optionnal flag: action will not be performed if not passed
 
 ## AD9547,48
 
@@ -57,7 +57,7 @@ sensors and IRQ flags
 
 ## Register map
 
-`regmap.py` allows the user to quickly load an exported
+`regmap.py` allows the user to load an exported
 register map from the official A&D graphical tool.
 * Support format is `json`.
 * `i2c` bus must be specified
@@ -83,65 +83,20 @@ regmap.py --dump /tmp/output.json 0 0x48
 
 Use the `help` menu to learn how to use this script:
 ```shell
+# determine known options
 status.py -h
-usage: status.py [-h] 
-    [--info]
-    [--serial]
-    [--sysclk-pll] [--sysclk-comp]
-    [--pll] [-pll0] [--pll1]
-    [--refa] [-refaa] [--refb] [--refbb] 
-    [--irq] 
-    [--iuts] 
-    [--temp] 
-    [--eeprom] 
-    [--misc] 
-    bus address
 
-Clock status reporting
-
-positional arguments:
-  bus           I2C bus
-  address       I2C slv address
-
-optional arguments:
-  -h, --help    show this help message and exit
-  --info         Device general infos (SN#, ..)
-  --serial       Serial port status (I2C/SPI)
-  --sysclk-pll   Sys clock synthesis pll
-  --sysclk-comp  Sys clock compensation
-  --pll          Shared Pll global info
-  --pll0         Pll0 specific infos
-  --pll1         Pll1 specific infos
-  --refa         REF-A signal info
-  --refaa        REF-AA signal info
-  --refb         REF-B signal info
-  --refbb        REF-BB signal info
-  --irq          IRQ registers
-  --iuts         Report IUTS Status
-  --temp         Internal temperature sensor
-  --eeprom       EEPROM controller status
-  --misc         Auxilary NCOs, DPll and Temp info
+# general info
+status.py 0 0x4A --info
+# IRQ + dpll status report
+status.py 0 0x4A --irq --dpll
 ```
 
-Several part of the integrated chips can be monitored at once.
-Output format is `json` and is streamed to `stdout`.
-Example of use:
+The output uses `json` format and is streamed to stdout directly.
+One can either dump it to a file, or directly loaded into
+another python script:
 
 ```shell
-# Grab general / high level info (bus=0, 0x4A):
-status.py --info --serial --pll 0 0x4A
-
-# General clock infos + ref-a status (bus=1, 0x48):
-status.py --pll --sysclk-pll --refa 1 0x48
-
-# IRQ status register
-status.py --irq 0 0x4A
-
-# dump status to a file
-status.py --info --serial --pll 0 0x4A > /tmp/status.json
-
-# call status.py from another python script;
-# evaluate json content (dict) directly from `stdout`
 import subprocess
 args = ['status.py', '--info', '0', '0x4A']
 ret = subprocess.run(args)
@@ -150,29 +105,28 @@ if ret.exitcode == 0: # OK
    status = ret.stdout.decode('utf-8') 
    # build structure directly
    status = eval(status)
-   status['info']['vendor'] # eval() is way cool!
+   print(status['info']['vendor'])
 ```
 
 ## Reset script
 
-`reset.py` to perform quick reset operations
+`reset.py` to perform reset operations
 
 ```shell
 # clear all asserted IRQs
 reset.py 0 0x4A --irq
 # reset tuning word history + watchdog timer 
-reset.py 0 0x4A --watchdog --tuning
+reset.py --tuning --watchdog 0 0x4A
 ```
 
 * `reset.py -h` for complete list of features
 
 ## Calibration script
 
-`calib.py` initializes the `sys clock` calibration routine.
+`calib.py` initializes / calibrates the clock: 
 
 ```shell
 calib.py 0 0x4A
-status.py 0 0x4A --sysclk
 ```
 
 ## Clock distribution
