@@ -45,15 +45,13 @@ to restrict to supported operations, when operating an AD9547.
 
 ## Utilities
 
-* `calib.py`: is critical, calibrates clock and internal synthesizers. 
-Action required depending on previous user actions and current settings. 
-* `distrib.py`: is critical, controls clock distribution and output signals
+* `calib.py`: to initiate a calibration process 
+* `distrib.py`: clock distribution and output signal management utility 
+* `irq.py`: IRQ masking & clearing operations 
 * `power-down.py` : power saving and management utility
-* `profile.py`: very useful, loads / dumps a register map preset,
-as desribed in application note
-* `reset.py`: to quickly reset the device
-* `status.py` : general status monitoring, including on board temperature,
-sensors and IRQ flags
+* `regmap.py`: load / dump a register map into device 
+* `reset.py`: reset the device 
+* `status.py` : generate status monitoring, includes IRQ status report 
 
 ## Register map
 
@@ -112,6 +110,12 @@ if ret.exitcode == 0: # OK
 
 `reset.py` to perform reset operations
 
+* `--soft` : performs a soft reset but maintains current registers value
+* `--irq` : clears all IRQ
+* `--phase` : resets DDS accumulator 
+* `--history` : resets tuning word history 
+* `-h` for more infos
+
 ```shell
 # clear all asserted IRQs
 reset.py 0 0x4A --irq
@@ -119,72 +123,12 @@ reset.py 0 0x4A --irq
 reset.py --tuning --watchdog 0 0x4A
 ```
 
-* `reset.py -h` for complete list of features
-
 ## Calibration script
 
 `calib.py` initializes / calibrates the clock: 
 
 ```shell
 calib.py 0 0x4A
-```
-
-## Clock distribution
-
-`distrib.py` is also an important utility. 
-It helps configure the clock path, control output signals
-and their behavior.
-
-Control flags:
-* `--core`: (optionnal) describes which core we are targetting.
-This script only suppports a single `--core` assignment.
-One must call `distrib.py` several times to perform multiple clock distribution.
-
-* `--channel`: (optionnal) describes which channel we are targetting for a given core.
-This script only suppports a single `--channel` assignment.
-One must call `distrib.py` several times to perform multiple channel distribution.
-Default to `all`, meaning if `--channel` is not specified, both channel (CH0/CH1)
-are assigned the same value.
-
-Action flags: the script supports as many `action` flags as desired.
-
-* `--sync-all`: sends a SYNC order to all distribution dividers.
-This action is special, in the sense `--core` and `--channel` are discarded.
-It is required to run a `sync-all` in case the current output behavior
-is not set to `immediate`.
-
-```shell
-# assign a SYNC all, might be required depending on
-# current configuration or previously loaded profile
-# This one is special, because --core + --channel are discarded
-distrib.py --sync-all 0 0x48
-```
-
-* `--autosync` : control given channel so called "autosync" behavior.
-`--core` is not needed for such operation.
-```shell
-# set both Pll CH0 & CH1 to "immediate" behavior
-distrib.py --autosync immediate 0 0x48
-# set both Pll CH0 to "immediate" behavior
-distrib.py --autosync immediate --channel 0 0 0x48
-#  and Pll CH1 to "manual" behavior
-distrib.py --autosync manual --channel 1 0 0x48
-```
-
-In the previous example, CH1 is set to manual behavior.  
-One must either perform a `sync-all` operation,
-a `q-sync` operation on channel 1,
-or an Mx-pin operation with dedicated script, to enable this output signal.
-
-* `--q-sync` : initializes a Q Divider synchronization sequence manually. 
-This is useful when enabling a channel manually, but without dedicated Mx-pin
-control.
-`--core` is not needed for such operation.
-```shell
-# manual Q Sync on both channels
-distrib.py --q-sync 0 0x48
-# manual Q Sync on channel 1
-distrib.py --q-sync --channel 1 0 0x48
 ```
 
 ## Profile
@@ -247,15 +191,6 @@ profile.py 0 0x48 --load 1 \
     --alpha 100E-3
 ```
 
-## Reset script
-
-To quickly reset the device
-
-* `--soft` : performs a soft reset
-* `--sans` : same thing but maintains current registers value 
-* `--watchdog` : resets internal watchdog timer
-* `-h` for more infos
-
 ## Power down script
 
 `power-down.py` perform and recover power down operations.   
@@ -268,7 +203,7 @@ Otherwise, select internal units with related flag
 ```shell
 power-down.py 0 0x4A --all
 ```
-* Recover a complete power down operation
+* Recover
 ```shell
 power-down.py 0 0x4A --all --clear
 ```
@@ -293,17 +228,12 @@ Clear them with `irq.py`:
 * `--sysclk`: clear all sysclock related events 
 * `-h`: for other known flags
 
-## Misc
 
-`status.py --temp` returns the internal temperature sensor reading.  
-
-* Program a temperature range :
+## Typical configuration flow
 
 ```shell
-misc.py --temp-thres-low -10 # [°C]
-misc.py --temp-thres-high 80 # [°C]
-misc.py --temp-thres-low -30 --temp-thres-high 90
-status.py --temp 0 0x48 # current reading [°C] 
+# load a register map
+regmap.py --load data.json --quiet 0 0x4A
+# initiate calibration
+calib.py 0 0x4A
 ```
-
-Related warning events are then retrieved with the `irq.py` utility, refer to related section.
