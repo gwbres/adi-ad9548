@@ -19,12 +19,6 @@ def read_data (handle, dev, addr):
     return data
 def bitfield (data, mask):
     return int((data & mask) >> int(math.log2(mask))) 
-def read_reg (handle, dev, status, reg, addr, bitfields):
-    if not reg in status:
-        status[reg] = {}
-    data = read_data(handle, dev, addr)
-    for b in bitfields:
-        status[reg][b[0]] = bitfield(data, b[1])
 
 def main (argv):
     parser = argparse.ArgumentParser(description="AD9547/48 status reporting")
@@ -61,6 +55,45 @@ def main (argv):
     handle.open(int(args.bus))
     address = int(args.address, 16)
 
+    enabled = {
+        0: 'disabled',
+        1: 'enabled',
+    }
+    disabled = {
+        0: 'enabled',
+        1: 'disabled',
+    }
+    loop_filter_ext = {
+        0: 'internal',
+        1: 'external',
+    }
+    auto = {
+        0: 'auto',
+        1: 'manual',
+    }
+    cpump_currents = {
+        '125uA': 0;
+        '250uA': 1,
+        '375uA': 2,
+        '500uA': 3,
+        '625uA': 4,
+        '750uA': 5,
+        '875uA': 6,
+        '1mA': 7,
+    }
+    lock_det_depths = {
+        0: 128,
+        1: 256,
+        2: 512,
+        3: 1024,
+    }
+    sysclk_sources = {
+        0: 'crystal',
+        1: 'direct low freq',
+        2: 'direct high freq',
+        3: 'rx power down',
+    }
+
     status = {}
     if args.info:
         status['info'] = {}
@@ -68,69 +101,58 @@ def main (argv):
         status['info']['id']  = hex(read_data(handle, address, 0x0003))
     if args.serial:
         status['serial'] = {}
-        status['serial']['buffered'] = read_data(handle, address, 0x0004) & 0x01
-    if args.tuning:
-        tuning = read_data(handle, address, 0x0D14)
-        tuning += read_data(handle, address, 0x0D15) << 8
-        tuning += read_data(handle, address, 0x0D16) << 16
-        tuning += read_data(handle, address, 0x0D17) << 24
-        tuning += read_data(handle, address, 0x0D18) << 32
-        tuning += read_data(handle, address, 0x0D19) << 40
-        status['tuning'] = tuning  
+        status['serial']['spi'] = {}
+        r = read_data(handle, address, 0x0000)
+        status['serial']['spi']['unidirectionnal'] = bool((r&0x80)>>7)
+        status['serial']['spi']['lsbf'] = bool((r&0x40)>>6)
+        status['serial']['spi']['long'] = bool((r&0x20)>>4)
+        status['serial']['readback'] = {}
+        r = read_data(handle, address, 0x0004)
+        status['serial']['readback']['registered'] = bool(r&0x01)
+        r = read_data(handle, address, 0x0D00)
+        status['serial']['readback']['fault-detected'] = bool((r&0x04)>>2)
+        status['serial']['readback']['loading'] = bool((r&0x02)>>1)
+        status['serial']['readback']['saving'] = bool(r&0x01)
     if args.sysclk:
         status['sysclk'] = {}
-        status['sysclk']['feedback-n-div'] = read_data(handle, address, 0x0101) & 0x0F 
-        data = read_data(handle, address, 0x0100)
-        status['sysclk']['ext-loop-filter'] = (data & 0x80)>>7
-        status['sysclk']['manual-charge-pump'] = (data & 0x40)>>6
-        status['sysclk']['charge-pump-current'] = (data & 0x18)>>3
-        status['sysclk']['lock-detect-tim-enabled'] = not(bool((data & 0x04)>>2))
-        depth = data & 0x03
-        if depth == 0:
-            depth = 128
-        elif depth == 1:
-            depth = 256
-        elif depth == 2:
-            depth = 512
-        elif depth == 3:
-            depth = 1024
-        status['sysclk']['lock-detect-tim-depth'] = depth
-        data = read_data(handle, address, 0x0102)
-        source = data & 0x03
-        if source == 0:
-            source = "crystal"
-        if source == 1:
-            source = "direct-low-freq"
-        if source == 2:
-            source = "direct-low-freq"
-        if source == 3:
-            source = "input-power-down"
-        status['sysclk']['source'] = source
-        status['sysclk']['pll-enable'] = bool((data & 0x04)>>2)
-        status['sysclk']['x2-multiplier'] = bool((data & 0x08)>>3)
-        status['sysclk']['m-div'] = (data & 0x30)>>4
-        status['sysclk']['m-div-reset'] = bool((data & 0x40)>>6)
+        r = read_data(handle, address, 0x0100)
+        status['sysclk']['loop-filter'] = loop_filter_ext((r & 0x80)>>7)
+        status['sysclk']['charge-pump'] = (r & 0x40)>>6
+        status['sysclk']['charge-pump-current'] = cpump_currents[(r & 0x38)>>3
+        status['sysclk']['lock-detect-timer'] = disabled[(r & 0x04)>>2]
+        status['sysclk']['lock-detect-depth'] = lock_det_depths[r & 0x03]
+        status['sysclk']['fb-n-divider'] = read_data(handle, address, 0x0101)
+
+        r = read_data(handle, address, 0x0102)
+        status['sysclk']['m-div-reset'] = bool((r & 0x40)>>6) 
+        status['sysclk']['m-div'] = int(pow(2,(r & 0x30)>>4))
+        status['sysclk']['freq-doubler'] = enabled[(r & 0x08)>>3]
+        status['sysclk']['pll'] = enabled[(r & 0x04)>>2]
+        status['sysclk']['source'] = sysclk_sources[r & 0x03]
+         
         period = read_data(handle, address, 0x0103)
         period += read_data(handle, address, 0x0104) << 8
         period += (read_data(handle, address, 0x0105) & 0x0F) << 16
-        status['sysclk']['period'] = period
+        status['sysclk']['freq'] = 1.0/(period *pow(10,-15)) # fs
+
         period = read_data(handle, address, 0x0106)
         period += read_data(handle, address, 0x0107) << 8
         period += (read_data(handle, address, 0x0108) & 0x0F) << 16
-        status['sysclk']['stab-period'] = period
-        bitfields = [
-            ('stable', 0x10),
-            ('calibrating', 0x02),
-            ('locked', 0x01),
-        ]
-        read_reg(handle, addres, status, 'sysclk', 0x0D01, bitfields)
-    if args.mx_pin: 
+        status['sysclk']['stability'] = period *pow(10,-3)) # ms
+
+        r = read_data(handle, address, 0x0D01)
+        status['sysclk']['stable'] = bool((r&0x10)>>4)
+        status['sysclk']['calibrating'] = bool((r&0x02)>>1)
+        status['sysclk']['locked'] = bool(r&0x01)
+
+    if args.mx_pins: 
         base = 0x0200
         status['mx-pin'] = {}
         for i in range (8):
             data = read_data(handle, address, base) 
-            status['mx-pin']['m{}-output'.format(i)] = (data & 0x80)>>7
-            status['mx-pin']['m{}-function'.format(i)] = data & 0x7F
+            status['mx-pin']['m{}'.format(i)] = {}
+            status['mx-pin']['m{}'.format(i)]['output'] = (data & 0x80)>>7
+            status['mx-pin']['m{}'.format(i)]['function'] = data & 0x7F
             base += 1
     if args.dpll:
         bitfields = [
@@ -182,33 +204,45 @@ def main (argv):
         status['watchdog'] = {}
         count = read_data(handle, address, 0x0211)
         count += read_data(handle, address, 0x0212) << 8
+    if args.tuning:
+        tuning = read_data(handle, address, 0x0D14)
+        tuning += read_data(handle, address, 0x0D15) << 8
+        tuning += read_data(handle, address, 0x0D16) << 16
+        tuning += read_data(handle, address, 0x0D17) << 24
+        tuning += read_data(handle, address, 0x0D18) << 32
+        tuning += read_data(handle, address, 0x0D19) << 40
+        status['tuning'] = tuning
+
     if args.irq:
         status['irq'] = {}
-        bitfields = [
-            ('unlocked', 0x20),
-            ('locked', 0x10),
-            ('cal-complete', 0x02),
-            ('cal-started', 0x01),
-        ]
-        read_reg(handle, address, status['irq'], 'sysclk', 0x0D02, bitfields)
-        bitfields = [
-            ('sync', 0x08),
-            ('watchdog', 0x04),
-            ('eeprom-fault', 0x02),
-            ('eeprom-complete', 0x01),
-        ]
-        read_reg(handle, address, status['irq'], 'distrib', 0x0D03, bitfields)
-        bitfields = [
-            ('switching', 0x80),
-            ('closed', 0x40),
-            ('free-run', 0x20),
-            ('holdover', 0x10),
-            ('freq-unlocked', 0x08),
-            ('freq-locked', 0x04),
-            ('phase-unlocked', 0x02),
-            ('phase-locked', 0x01),
-        ]
-        read_reg(handle, address, status['irq'], 'dpll', 0x0D04, bitfields)
+        for category in ['sysclk','distrib','eeprom','dpll','watchdog']:
+            status['irq'][category] = {}
+        
+        r = read_data(handle, address, 0x0D02)
+        status['irq']['sysclk']['unlocked'] = bool((r & 0x20)>>5)
+        status['irq']['sysclk']['locked'] = bool((r & 0x10)>>4)
+        status['irq']['sysclk']['calibration'] = {}
+        status['irq']['sysclk']['calibration']['done'] = bool((r & 0x02)>>1)
+        status['irq']['sysclk']['calibration']['started'] = bool(r & 0x01)
+        
+        r = read_data(handle, address, 0x0D03)
+        status['irq']['distrib']['sync'] = bool((r & 0x08)>>3)
+        status['irq']['watchdog']['expired'] = bool((r & 0x04)>>2)
+        status['irq']['eeprom']['fault'] = bool((r & 0x02)>>1)
+        status['irq']['eeprom']['complete'] = bool((r & 0x01)>>0)
+        
+        r = read_data(handle, address, 0x0D04)
+        status['irq']['dpll']['switching-ref'] = bool((r & 0x80)>>7)
+        status['irq']['dpll']['closed-loop'] = bool((r & 0x40)>>6)
+        status['irq']['dpll']['free-run'] = bool((r & 0x20)>>5)
+        status['irq']['dpll']['holdover'] = bool((r & 0x10)>>4)
+        status['irq']['dpll']['freq'] = {}
+        status['irq']['dpll']['freq']['unlocked'] = bool((r & 0x08)>>3)
+        status['irq']['dpll']['freq']['locked'] = bool((r & 0x04)>>2)
+        status['irq']['dpll']['phase'] = {}
+        status['irq']['dpll']['phase']['unlocked'] = bool((r & 0x02)>>1)
+        status['irq']['dpll']['phase']['locked'] = bool((r & 0x01)>>0)
+        
         bitfields = [
             ('updated', 0x10),
             ('freq-unclamped', 0x08),
