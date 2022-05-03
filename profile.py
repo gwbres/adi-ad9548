@@ -66,7 +66,7 @@ def quantize (value, q):
         return quantize_beta(value)
 
 def main (argv):
-    parser = argparse.ArgumentParser(description="AD9548/47 profile tool")
+    parser = argparse.ArgumentParser(description="AD9548 profile tool")
     parser.add_argument(
         "bus",
         metavar="bus",
@@ -113,15 +113,13 @@ def main (argv):
     handle = SMBus()
     handle.open(int(args.bus))
     address = int(args.address, 16)
-    profile = int(args.profile)
 
-    base = 0x0601 
-    size = 0x0631 - base
-    base = base + size * args.profile
-
-    print("debug: base_address is {}".format(hex(base)))
+    reg0 = 0x0601 
+    size = 0x0631 - reg0 
 
     if args.read:
+        base = reg0 + size * args.read
+        print("debug: base_address is {}".format(hex(base)))
         profile = {}
         per  = read_data(handle, address, base +0)
         per += read_data(handle, address, base +1) <<8
@@ -173,37 +171,97 @@ def main (argv):
         profile['beta'] = beta(b0,b1)
         profile['delta'] = delta(d0,d1)
         profile['gamma'] = gamma(g0,g1)
+
+        div  = read_data(handle, address, base + 0x61E - reg0)
+        div += read_data(handle, address, base + 0x61F - reg0) << 8
+        div += read_data(handle, address, base + 0x620 - reg0) << 16
+        div += (read_data(handle, address, base + 0x621 - reg0) & 0x1F) << 24
+        profile['r-div'] = div
+        
+        div  = read_data(handle, address, base + 0x622 - reg0)
+        div += read_data(handle, address, base + 0x623 - reg0) << 8
+        div += read_data(handle, address, base + 0x624 - reg0) << 16
+        div += (read_data(handle, address, base + 0x625 - reg0) & 0x1F) << 24
+        profile['s-div'] = div
+
+        profile['fractionnal-div'] = {}
+        r0 = read_data(handle, address, base + 0x0626 - reg0)
+        r1 = read_data(handle, address, base + 0x0627 - reg0)
+        r2 = read_data(handle, address, base + 0x0628 - reg0)
+        V = r0
+        V += (r1 & 0x03)<<8
+        U = (r1 & 0xF0)>>4
+        U += (r2 & 0x1F)<<4
+        profile['fractionnal-div']['U'] = U
+        profile['fractionnal-div']['V'] = V
+
         print(json.dumps(profile, sort_keys=True, indent=2))
         return 0
 
+    profile = args.load
+    base = reg0 + size * args.load
+    print("debug: base_address is {}".format(hex(base)))
+    
     if args.freq:
-        if args.load:
-            per = round(1E15/args.freq)
-            write_data(handle, address, base +0, per & 0xFF)
-            write_data(handle, address, base +1, (per & 0xFF00)>>8)
-            write_data(handle, address, base +2, (per & 0xFF0000)>>16)
-            write_data(handle, address, base +3, (per & 0xFF000000)>>24)
-            write_data(handle, address, base +4, (per & 0xFF00000000)>>32)
-            write_data(handle, address, base +5, (per & 0xFF0000000000)>>40)
-            write_data(handle, address, base +7, (per & 0xFF000000000000)>>48)
+        per = round(1E15/args.freq)
+        write_data(handle, address, base +0, per & 0xFF)
+        write_data(handle, address, base +1, (per & 0xFF00)>>8)
+        write_data(handle, address, base +2, (per & 0xFF0000)>>16)
+        write_data(handle, address, base +3, (per & 0xFF000000)>>24)
+        write_data(handle, address, base +4, (per & 0xFF00000000)>>32)
+        write_data(handle, address, base +5, (per & 0xFF0000000000)>>40)
+        write_data(handle, address, base +7, (per & 0xFF000000000000)>>48)
 
     if args.alpha:
-        if args.load:
-            q = quantize(args.alpha, 'alpha')
-            print(u'Quantized \u03B1', q)
+        q = quantize(args.alpha, 'alpha')
+        print(u'Quantized \u03B1', q)
+        write_data(handle, address, base + 0x612-reg0, q[0] & 0xFF)
+        write_data(handle, address, base + 0x613-reg0,(q[0] & 0xFF00)>>8)
+        r = q[1] & 0x3F
+        r |= (q[2] & 0x03) << 6
+        write_data(handle, address, base + 0x614-reg0, r)
+        r = read_data(handle, address, base +0x615-reg0)
+        r |= (q[2] & 0x04)>>2
+        write_data(handle, address, base + 0x615-reg0, r)
+
+        r = read_data(handle, address, base + 0x061D-reg0)
+        r |= (q[3] & 0x0F)<<4
+        write_data(handle, address, base + 0x61D-reg0, r)
+
     if args.beta:
-        if args.load:
-            q = quantize(args.beta, 'beta')
-            print(u'Quantized \u03B2', q)
-            #write_data (handle, address, 0x0612)
-    if args.delta:
-        if args.load:
-            q = quantize(args.delta, 'delta')
-            print(u'Quantized \u03B4', q)
+        q = quantize(args.beta, 'beta')
+        print(u'Quantized \u03B2', q)
+        r = read_data(handle, address, base + 0x615-reg0)
+        r |= (q[0]&0x7F)<<1
+        write_data(handle, address, base + 0x615-reg0, r)
+        write_data(handle, address, base + 0x616-reg0, (q[0] & 0x7F8)>>7)
+
+        r = (q[0] & 0x1800) >> 11
+        r |= (q[1] & 0x1F)
+        write_data(handle, address, base + 0x617-reg0, r)
+
     if args.gamma:
-        if args.load:
-            q = quantize(args.gamma, 'gamma')
-            print(u'Quantized \u03B3', q)
+        q = quantize(args.gamma, 'gamma')
+        print(u'Quantized \u03B3', q)
+        write_data(handle, address, base + 0x618-reg0, q[0] & 0xFF)
+        write_data(handle, address, base + 0x619-reg0, (q[0] & 0xFF00)>>8)
+        
+        r = read_data(handle, address, base + 0x061A-reg0)
+        r =  (q[0] & 0x10000)>>16
+        r |= (q[1] & 0x1F)<<1
+        write_data(handle, address, base + 0x061A-reg0, r)
+
+    if args.delta:
+        q = quantize(args.delta, 'delta')
+        print(u'Quantized \u03B4', q)
+
+        write_data(handle, address, base + 0x061B-reg0, q[0] & 0xFF)
+        r  = (q[0] & 0x7F00)>>8
+        r |= (q[1] & 0x01)<<7
+        write_data(handle, address, base + 0x061C-reg0, r)
+
+        r = read_data(handle, address, base + 0x061D - reg0)
+
     write_data(handle, address, 0x0005, 0x01) # i/o update
 if __name__ == "__main__":
     main(sys.argv[1:])
