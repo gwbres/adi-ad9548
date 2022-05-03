@@ -2,16 +2,15 @@
 #################################################################
 # Guillaume W. Bres, 2022          <guillaume.bressaix@gmail.com>
 #################################################################
-# profile.py
-# small script to quickly load a profile into an AD9545,46 
+# regmap.py: load/dump a register map into device
 #################################################################
 import sys
 import json
 import argparse
 from smbus import SMBus
 
-REGMAP = [0x00, 0x3A3B]
-KNOWN_DEVICES = ["ad9545","ad9546"]
+REGMAP = [0x00, 0x0E3F]
+KNOWN_DEVICES = ["ad9547","ad9548"]
 
 def progress_bar (progress, width=100):
     """ displays progress bar,
@@ -32,7 +31,7 @@ def progress_bar (progress, width=100):
     sys.stdout.flush()
 
 def main (argv):
-    parser = argparse.ArgumentParser(description="Load /dump a profile into/from AD9545,46 chipset")
+    parser = argparse.ArgumentParser(description="Load /dump a profile into/from AD9548 chipset")
     parser.add_argument(
         "bus", 
         metavar="bus", 
