@@ -2,10 +2,7 @@
 #################################################################
 # Guillaume W. Bres, 2022          <guillaume.bressaix@gmail.com>
 #################################################################
-# power-down.py
-# small script to perform power down operations
-# Any power down will probably require either a partial
-# or a complete recalibration
+# power-down.py: AD9548 unit management
 #################################################################
 import sys
 import argparse
@@ -23,7 +20,7 @@ def read_data (handle, dev, addr):
     return data
 
 def main (argv):
-    parser = argparse.ArgumentParser(description="AD9547/48 power-down tool")
+    parser = argparse.ArgumentParser(description="AD9548 power-down tool")
     parser.add_argument(
         "bus",
         help="I2C bus",
