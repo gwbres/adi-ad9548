@@ -133,7 +133,7 @@ calib.py 0 0x4A
 
 ## Profile
 
-AD9547,48 supports up to 8 profiles.  
+AD9548 supports up to 8 internal profiles.  
 A profile comprises:
 
 * the expected input period
@@ -147,12 +147,15 @@ directly and converts them internally.
 The script only supports reading/writing one profile at a time.
 
 * `--read n` : read current profile `n` (starting at 0) stored internally.
+When using this flag, all other flags are discarded and get left out.
+
 Example:
 
 ```shell
-# Read current 2nd profile storage
-profile.py --read 1 
-# outputs all values
+# read settings contained in `0` profile storage
+profile.py 1 0x43 --read 0 
+# read 3rd profile
+profile.py 1 0x43 --read 2 
 ```
 
 * `--load n` : load settings into `n` storage location (starting at 0).
@@ -162,8 +165,8 @@ Example:
 ```shell
 # define a new profile #0
 profile.py 0 0x48 --load 1 \
-    # reference period in [s] 
-    --period 10E-9 \
+    # reference freq [Hz] 
+    --freq 1E8 \
     # inner tolerance
     --inner 0.1 \
     # outter tolerance 

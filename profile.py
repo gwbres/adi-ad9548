@@ -8,6 +8,7 @@
 #################################################################
 import sys
 import math
+import json
 import argparse
 from smbus import SMBus
 
@@ -68,31 +69,32 @@ def main (argv):
     parser = argparse.ArgumentParser(description="AD9548/47 profile tool")
     parser.add_argument(
         "bus",
+        metavar="bus",
         help="I2C bus",
     )
     parser.add_argument(
         "address",
+        metavar="address",
         help="I2C slv address",
     )
     parser.add_argument(
-        "profile",
-        type=int,
-        help="Select internal profile",
-    )
-    parser.add_argument(
         '--load',
-        action="store_true",
-        help='Load a profile',
+        metavar="profile",
+        type=int,
+        choices=range(8),
+        help='Load settings into internal profile',
     )
     parser.add_argument(
         '--read',
-        action="store_true",
-        help='Read current profile',
+        metavar="profile",
+        type=int,
+        choices=range(8),
+        help='Read internal profile content',
     )
     flags = [
-        ("period", float, "Reference period [s]"),
-        ("inner", float, "inner tolerance [ppm]"),
-        ("outter", float, "outter tolerance [ppm]"),
+        ("freq", float, "Read/Set reference frequency [Hz] for given profile"),
+        ("inner", float, "Read/Set inner tolerance [ppm]"),
+        ("outter", float, "Read/Set, outter tolerance [ppm]"),
         ("validation", float, "validation timer [s]"),
         ("redetect", float, "redetect timer [s]"),
         ("alpha", float, "Filter alpha coefficient"),
@@ -109,13 +111,15 @@ def main (argv):
 
     # open device
     handle = SMBus()
-    #handle.open(int(args.bus))
-    #address = int(args.address, 16)
+    handle.open(int(args.bus))
+    address = int(args.address, 16)
     profile = int(args.profile)
 
     base = 0x0601 
     size = 0x0631 - base
     base = base + size * args.profile
+
+    print("debug: base_address is {}".format(hex(base)))
 
     if args.read:
         profile = {}
@@ -126,7 +130,7 @@ def main (argv):
         per += read_data(handle, address, base +4) <<32
         per += read_data(handle, address, base +5) <<40
         per += (read_data(handle, address, base +6) & 0x3) <<48
-        profile['period'] = per * 1E-15
+        profile['freq'] = 1.0/(per * 1E-15)
         inner  = read_data(handle, address, base +7)
         inner += read_data(handle, address, base +8) << 8
         inner += (read_data(handle, address, base +9) & 0x0F) << 8
@@ -169,12 +173,12 @@ def main (argv):
         profile['beta'] = beta(b0,b1)
         profile['delta'] = delta(d0,d1)
         profile['gamma'] = gamma(g0,g1)
-        pprint(profile)
+        print(json.dumps(profile, sort_keys=True, indent=2))
         return 0
 
-    if args.period:
+    if args.freq:
         if args.load:
-            per = round(args.period * 1E15)
+            per = round(1E15/args.freq)
             write_data(handle, address, base +0, per & 0xFF)
             write_data(handle, address, base +1, (per & 0xFF00)>>8)
             write_data(handle, address, base +2, (per & 0xFF0000)>>16)
