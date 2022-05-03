@@ -20,7 +20,7 @@ def read_data (handle, dev, addr):
     return data
 
 def main (argv):
-    parser = argparse.ArgumentParser(description="AD9548/47 reset tool")
+    parser = argparse.ArgumentParser(description="AD9548 reset tool")
     parser.add_argument(
         "bus",
         help="I2C bus",
