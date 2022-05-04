@@ -132,7 +132,7 @@ def main (argv):
         r = read_data(handle, address, 0x0100)
         status['sysclk']['loop-filter'] = loop_filter_ext((r & 0x80)>>7)
         status['sysclk']['charge-pump'] = (r & 0x40)>>6
-        status['sysclk']['charge-pump-current'] = cpump_currents[(r & 0x38)>>3
+        status['sysclk']['charge-pump-current'] = cpump_currents[(r & 0x38)>>3]
         status['sysclk']['lock-detect-timer'] = disabled[(r & 0x04)>>2]
         status['sysclk']['lock-detect-depth'] = lock_det_depths[r & 0x03]
         status['sysclk']['fb-n-divider'] = read_data(handle, address, 0x0101)
