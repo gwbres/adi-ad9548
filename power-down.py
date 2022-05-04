@@ -59,38 +59,39 @@ def main (argv):
     handle.open(int(args.bus))
     address = int(args.address, 16)
 
-    (addr, mask) = (None, None)
+    regs = []
     if args.all: # special op
-        (addr, mask) = (0x0A00, 0x01)
+        regs.append((0x0A00, 0x01))
     else:
         if args.sysclk:
-            (addr, mask) = (0x0A00, 0x20)
+            regs.append((0x0A00, 0x20))
         if args.ref:
-            (addr, mask) = (0x0A00, 0x10)
+            regs.append((0x0A00, 0x10))
         if args.dist:
-            (addr, mask) = (0x0A00, 0x02)
+            regs.append((0x0A00, 0x02))
         if args.dac:
-            (addr, mask) = (0x0A00, 0x04)
+            regs.append((0x0A00, 0x04))
         if args.tdc:
-            (addr, mask) = (0x0A00, 0x08)
+            regs.append((0x0A00, 0x08))
         if args.refa:
-            (addr, mask) = (0x0500, 0x01)
+            regs.append((0x0500, 0x01))
         if args.refaa:
-            (addr, mask) = (0x0500, 0x02)
+            regs.append((0x0500, 0x02))
         if args.refb:
-            (addr, mask) = (0x0500, 0x04)
+            regs.append((0x0500, 0x04))
         if args.refbb:
-            (addr, mask) = (0x0500, 0x08)
+            regs.append((0x0500, 0x08))
         if args.refc:
-            (addr, mask) = (0x0500, 0x10)
+            regs.append((0x0500, 0x10))
         if args.refcc:
-            (addr, mask) = (0x0500, 0x20)
+            regs.append((0x0500, 0x20))
         if args.refd:
-            (addr, mask) = (0x0500, 0x40)
+            regs.append((0x0500, 0x40))
         if args.refdd:
-            (addr, mask) = (0x0500, 0x80)
+            regs.append((0x0500, 0x80))
     
-    if addr is not None: # cli OK
+    for reg in regs: # cli OK
+        (addr, mask) = reg
         r = read_data(handle, address, addr)
         if args.clear:
             write_data(handle, address, addr, r & (mask^0xFF)) # mask out

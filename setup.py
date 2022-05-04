@@ -9,7 +9,6 @@ setup(name="adi-ad9548",
     scripts=[
         "calib.py",
         "irq.py",
-        "misc.py",
         "mx-pin.py",
         "power-down.py",
         "profile.py",
