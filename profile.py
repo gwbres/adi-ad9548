@@ -193,7 +193,7 @@ def main (argv):
         g1 = (r&0x1E) >> 1
 
         d0 = read_data(handle, address, base + 0x61B - reg0)
-        r = read_data(handle, addres, base + 0x61C - reg0)
+        r = read_data(handle, address, base + 0x61C - reg0)
         d0 += (r&0x7F)<<8 
         d1 = (r&0x80)>>7
         
