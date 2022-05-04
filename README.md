@@ -199,12 +199,15 @@ profile.py 0 0x48 --load 1 \
 Useful to power down non needed channels and internal cores. 
 
 The `--all` flag addresses all internal cores.  
-Otherwise, select internal units with related flag
+Otherwise, select internal units with related flag.
+
+`--clear` is used to recover (unset) a power down operaion.
 
 * Power down device entirely
 ```shell
 power-down.py 0 0x4A --all
 ```
+
 * Recover
 ```shell
 power-down.py 0 0x4A --all --clear
