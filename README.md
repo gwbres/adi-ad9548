@@ -111,7 +111,6 @@ if ret.exitcode == 0: # OK
 `reset.py` to perform reset operations
 
 * `--soft` : performs a soft reset but maintains current registers value
-* `--irq` : clears all IRQ
 * `--phase` : resets DDS accumulator 
 * `--history` : resets tuning word history 
 * `-h` for more infos
@@ -221,16 +220,63 @@ power-down.py 0 0x4A --clear --refa
 
 `status.py --irq` allows reading the current asserted IRQ flags.  
 
-Clear them with `irq.py`:
+`irq.py` allows several operations.
+* `--pin [mode]` : control how the IRQ output pin operates
 
-* `--all`: clear all flags
-* `--pll`: clear all PLL (PLL0 + PLL1 + digital + analog) related events 
-* `--pll0`: clear PLL0 (digital + analog) related events 
-* `--pll1`: clear PLL1 (digital + analog) related events 
-* `--other`: clear events that are not related to the pll subgroup
-* `--sysclk`: clear all sysclock related events 
-* `-h`: for other known flags
+```shell
+# set CMOS + active high logic
+irq.py --pin cmos-high 0 0x43
+# set CMOS + active low logic
+irq.py --pin cmos-low 0 0x43
+```
 
+All other flags are discarded when using `--pin [mode]` because
+it is a special opmode.
+
+* `--enable` : to enable some IRQ events.
+`--all` will enable all known IRQ events.
+Otherwise, user must specify which one to enable:
+
+```shell
+# Enable all IRQ events
+irq.py --enable --all
+
+# Enable dpll freq lock + phase lock events
+irq.py --enable --dpll-freq-lock --dpll-phase-lock
+# Enable dpll holdover + free run events
+irq.py --enable --dpll-holdover --dpll-free-run
+# Enable REFA reference validation event
+irq.py --enable --refa-validated
+```
+
+Use `-h` to enumerate all known IRQ events.
+
+* `--disable` : to disable some IRQ events.
+`--all` will disable all known IRQ events.
+Otherwise, user must specify which one to disable:
+
+```shell
+# Disable all IRQ events
+irq.py --disable all
+
+# Disable refaa/b/bb/c/cc/d/dd related events
+# in scenario we're only interested in ref-a
+irq.py --disable --refaa \
+    --refb --refbb \
+    --refc --refcc \
+    --refd --refdd
+```
+
+* `--clear` : to clear pending IRQ events.
+`--all` will clear all known IRQ events (whether it's pending or not).
+Otherwise, user must specify which event we are about to clear:
+
+```shell
+# clears all possible events
+irq.py --clear all 
+# clear acknowledged Phase Locking event
+irq.py --clear --dpll-phase-lock 
+```
 
 ## Typical configuration flow
 
