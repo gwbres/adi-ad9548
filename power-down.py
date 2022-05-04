@@ -59,92 +59,44 @@ def main (argv):
     handle.open(int(args.bus))
     address = int(args.address, 16)
 
-    if args.all:
-        reg = read_data(handle, address, 0x0A00)
-        if args.clear:
-            reg &= 0x00
-        else:
-            reg |= 0x01
-        write_data(handle, address, 0x0A00, reg)
+    (addr, mask) = (None, None)
+    if args.all: # special op
+        (addr, mask) = (0x0A00, 0x01)
     else:
         if args.sysclk:
-            reg = read_data(handle, address, 0x0A00)
-            if args.clear:
-                reg &= 0xDF
-            else:
-                reg |= 0x20
-            write_data(handle, address, 0x0A00, reg)
+            (addr, mask) = (0x0A00, 0x20)
         if args.ref:
-            reg = read_data(handle, address, 0x0A00)
-            if args.clear:
-                reg &= 0xEF
-            else:
-                reg |= 0x10
-            write_data(handle, address, 0x0A00, reg)
+            (addr, mask) = (0x0A00, 0x10)
         if args.dist:
-            reg = read_data(handle, address, 0x0A00)
-            if args.clear:
-                reg &= 0xFD
-            else:
-                reg |= 0x02
-            write_data(handle, address, 0x0A00, reg)
+            (addr, mask) = (0x0A00, 0x02)
         if args.dac:
-            reg = read_data(handle, address, 0x0A00)
-            if args.clear:
-                reg &= 0xFB
-            else:
-                reg |= 0x04
-            write_data(handle, address, 0x0A00, reg)
+            (addr, mask) = (0x0A00, 0x04)
         if args.tdc:
-            reg = read_data(handle, address, 0x0A00)
-            if args.clear:
-                reg &= 0xF7
-            else:
-                reg |= 0x08
-            write_data(handle, address, 0x0A00, reg)
-        reg = read_data (handle, address, 0x0500)
+            (addr, mask) = (0x0A00, 0x08)
         if args.refa:
-            if args.clear:
-                reg &= 0xFE
-            else:
-                reg |= 0x01
+            (addr, mask) = (0x0500, 0x01)
         if args.refaa:
-            if args.clear:
-                reg &= 0xFD
-            else:
-                reg |= 0x02
+            (addr, mask) = (0x0500, 0x02)
         if args.refb:
-            if args.clear:
-                reg &= 0xFB
-            else:
-                reg |= 0x04
+            (addr, mask) = (0x0500, 0x04)
         if args.refbb:
-            if args.clear:
-                reg &= 0xF7
-            else:
-                reg |= 0x08
+            (addr, mask) = (0x0500, 0x08)
         if args.refc:
-            if args.clear:
-                reg &= 0xEF
-            else:
-                reg |= 0x10
+            (addr, mask) = (0x0500, 0x10)
         if args.refcc:
-            if args.clear:
-                reg &= 0xDF
-            else:
-                reg |= 0x20
+            (addr, mask) = (0x0500, 0x20)
         if args.refd:
-            if args.clear:
-                reg &= 0xBF
-            else:
-                reg |= 0x40
+            (addr, mask) = (0x0500, 0x40)
         if args.refdd:
-            if args.clear:
-                reg &= 0x7F
-            else:
-                reg |= 0x80
-        reg = read_data (handle, address, 0x0500)
-    write_data(handle, address, 0x0005, 0x01) # I/O update
+            (addr, mask) = (0x0500, 0x80)
+    
+    if addr is not None: # cli OK
+        r = read_data(handle, address, addr)
+        if args.clear:
+            write_data(handle, address, addr, r & (mask^0xFF)) # mask out
+        else:
+            write_data(handle, address, addr, r | mask) # assert
+        write_data(handle, address, 0x0005, 0x01) # I/O update
 
 if __name__ == "__main__":
     main(sys.argv[1:])
