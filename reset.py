@@ -60,7 +60,7 @@ def main (argv):
     if args.irq:
         reg = read_data(handle, address, 0x0A03)
         reg &= 0xFD
-        write_data(handle, address, 0x0A03, r | 0x02)
+        write_data(handle, address, 0x0A03, reg | 0x02)
     if args.watchdog:
         reg = read_data(handle, address, 0x0A03)
         reg &= 0xFE
