@@ -193,7 +193,7 @@ def main (argv):
             status['ref']['ref-{}'.format(c)] = {}
             r = read_data(handle, address, base)
             status['ref']['c']['profile-selected'] = bool((r & 0x80)>>7)
-            status['ref']['c')]['selected-profile'] = (r & 0x70)>>6
+            status['ref']['c']['selected-profile'] = (r & 0x70)>>6
             status['ref']['c']['valid'] = bool((r & 0x08)>>3)
             status['ref']['c']['fault'] = bool((r & 0x04)>>2)
             status['ref']['c']['fast'] = bool((r & 0x02)>>1)
