@@ -29,6 +29,7 @@ def main (argv):
         "address",
         help="I2C slv address",
     )
+    args = parser.parse_args(argv)
 
     # open device
     handle = SMBus()
