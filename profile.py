@@ -50,6 +50,9 @@ def beta (d0, d1):
 def gamma (g0, g1):
     return beta(g0,g1)
 
+def delta (d0, d1):
+    return d0 * pow(2, -17-d1)
+
 def quantize_delta (delta):
     x = -math.ceil(math.log2(delta))
     d1 = min(31, max(0, x))
