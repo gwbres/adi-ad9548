@@ -74,7 +74,7 @@ def main (argv):
         1: 'manual',
     }
     cpump_currents = {
-        '125uA': 0;
+        '125uA': 0,
         '250uA': 1,
         '375uA': 2,
         '500uA': 3,
@@ -281,9 +281,9 @@ def main (argv):
         r = read_data(handle, address, 0x0E01)
         status['eeprom']['download-condition'] = r & 0x1F
         r = read_data(handle, address, 0x0E02)
-        status['eeprom']['save-to'] = bool(r 0x01)
+        status['eeprom']['save-to'] = bool(r & 0x01)
         r = read_data(handle, address, 0x0E03)
-        status['eeprom']['load-from'] = bool((r 0x02)>>1)
+        status['eeprom']['load-from'] = bool((r & 0x02)>>1)
 
     print(json.dumps(status, sort_keys=True, indent=2))
     
