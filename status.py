@@ -147,12 +147,12 @@ def main (argv):
         period = read_data(handle, address, 0x0103)
         period += read_data(handle, address, 0x0104) << 8
         period += (read_data(handle, address, 0x0105) & 0x0F) << 16
-        status['sysclk']['freq'] = 1.0/(period *pow(10,-15)) # fs
+        status['sysclk']['freq'] = 1.0/(period*pow(10,-15)) # fs
 
         period = read_data(handle, address, 0x0106)
         period += read_data(handle, address, 0x0107) << 8
         period += (read_data(handle, address, 0x0108) & 0x0F) << 16
-        status['sysclk']['stability'] = period *pow(10,-3)) # ms
+        status['sysclk']['stability'] = period*pow(10,-3) # ms
 
         r = read_data(handle, address, 0x0D01)
         status['sysclk']['stable'] = bool((r&0x10)>>4)
@@ -219,6 +219,15 @@ def main (argv):
         for category in ['sysclk','distrib','eeprom','dpll','watchdog']:
             status['irq'][category] = {}
         
+        r = read_data(handle, address, 0x0208)
+        modes = {
+            0: 'nmos',
+            1: 'pmos',
+            2: 'cmos-high',
+            3: 'cmos-low',
+        }
+        status['irq']['pin'] = modes[r & 0x03] 
+
         r = read_data(handle, address, 0x0D02)
         status['irq']['sysclk']['unlocked'] = bool((r & 0x20)>>5)
         status['irq']['sysclk']['locked'] = bool((r & 0x10)>>4)
