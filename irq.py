@@ -247,9 +247,9 @@ def main (argv):
         
         r = read_data(handle, address, addr)
         if args.disable: # clear desired bit(s)
-            write_data(handle, address, addr, r & (bits^0xFF))
+            write_data(handle, address, addr, r & (mask^0xFF))
         else: # assert desired bit(s)
-            write_data(handle, address, addr, r | bits)
+            write_data(handle, address, addr, r | mask)
     write_data(handle, address, 0x0005, 0x01)
 
 if __name__ == "__main__":
