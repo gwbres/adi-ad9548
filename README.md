@@ -161,6 +161,13 @@ mx-pin.py 0 0x4A M3 output sysclk/32
 
 `distrib.py` to control clock distribution
 and output signals.
+All special operations discard the `--channel` argument.
+
+* `--sync`: iniate a distribution SYNC operation manually
+
+```shell
+distrib.py 0 0x4A --sync
+```
 
 * `--source` is a special operation,
 sets clock distribution synchronization source.

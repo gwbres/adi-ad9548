@@ -38,6 +38,11 @@ def main (argv):
         help="Select OUTx or Qx to configure. Defaults to `all`.",
     )
     parser.add_argument(
+        "--sync",
+        action="store_true",
+        help="""Iniate a SYNC operation of the distribution stage manually"""
+    )
+    parser.add_argument(
         "--source",
         metavar="source",
         choices=["direct","active","dpll-feedback"],
@@ -124,6 +129,13 @@ def main (argv):
         'lvpecl': 5,
     }
 
+    if args.sync: # special op
+        r = read_data(handle, address, 0x0A02)
+        write_data(handle, address, 0x0A02, r | 0x02) # assert
+        write_data(handle, address, 0x0005, 0x01) # I/O update
+        write_data(handle, address, 0x0A02, r & (0x02^0xFF)) # deassert 
+        write_data(handle, address, 0x0005, 0x01) # I/O update
+        return 0
     if args.source: # special op
         r = read_data(handle, address, 0x0402)
         write_data(handle, address, 0x0402, r | (sources[args.source]) << 4)
