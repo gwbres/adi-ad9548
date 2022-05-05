@@ -212,6 +212,71 @@ distrib.py 0 0x4A --divider 5000000 --channel 2
 distrib.py 0 0x4A --divider 5000000 --channel 3
 ```
 
+## DPll: Digital PLL management
+
+`dpll.py` to operate and manage the Digital PLL core.   
+`dpll.py` supports all of its operations at once.
+
+* `--tuning` : load a new (free running) frequency tuning word
+in [Hz]
+
+* `--tuning-apply`: apply (free running) frequency tuning word
+
+These two operations can be conveniently combined
+
+```shell
+# set new tuning word
+dpll.py 0 0x48 --tuning 10E3
+# modify slightly and apply right away
+dpll.py 0 0x48 --tuning 10.1E3 --tuning-apply
+```
+
+* `--pull-in-low` and `--pull-in-high` set (as binary mask)
+the DDS tuning range. These flag expect a hex binary mask
+
+```shell
+# limit range
+dpll.py 0 0x48 --pull-in-low 0x0FFF
+dpll.py 0 0x48 --pull-in-high 0x3FFF
+# same operation 
+dpll.py 0 0x48 --pull-in-low 0x0FFF --pull-in-high 0x3FFF
+```
+
+* `--open-offset` : phase offset applied in open loop, in [% of pi rad] 
+```shell
+# pi/2 offset 
+dpll.py 0 0x48 --open-offset 50
+# pi/4 offset 
+dpll.py 0 0x48 --open-offset 25 
+# 3pi/4 offset 
+dpll.py 0 0x48 --open-offset 75 
+# complex value
+dpll.py 0 0x48 --open-offset 33.333 
+```
+
+* `--lock-offset` : phase offset applied in closed loop, in [s]
+```shell
+# apply static 10E-3 sec offset
+dpll.py 0 0x48 --lock-offset 10E-3
+# apply static 10E-6 sec offset
+dpll.py 0 0x48 --lock-offset 10E-6
+```
+
+* `--inc-step-size` : Phase lock offset incremental step size [sec / step]
+```shell
+# apply 10E-12 (10ps) increment per step
+dpll.py 0 0x48 --inc-step-size 10E-12
+```
+
+* `--phase-slew-limit` : set phase slew rate limit in sec /sec 
+```shell
+# set limit to 10E-9 (10 ns)/s
+dpll.py 0 0x48 --phase-slew-limit 10E-9
+```
+
+* `--history-acc-timer`: history accumulation timer / period in [s]
+* `-h` for listing all other supported operations
+
 ## Profile
 
 AD9548 supports up to 8 internal profiles.  
