@@ -36,7 +36,7 @@ Refer to help menu for specific information.
 * `flag` is a mandatory flag
 * `--flag` is an optionnal flag: action will not be performed if not passed
 
-## AD9547,48
+## AD9548/47
 
 The two chip share similar functionnalities, except that
 AD9548 is more capable than 47.   
@@ -128,6 +128,30 @@ reset.py --tuning --watchdog 0 0x4A
 
 ```shell
 calib.py 0 0x4A
+```
+
+## Mx-pin programmable I/O
+
+AD9548 has 8 programmable pin.  
+Each pin can operate as an input or an output pin.  
+Each pin supports about 20 different macros.
+
+* `pin`: select desired pin from M0 to M7
+* `io`: {"input","output"} : programm given pin as an input or an output
+* `macro`: select macro (special opmode) to program
+
+The script supports one Pin assignement per call. It is not possible
+to program several pins at once
+
+```shell
+# M0 will serve as freq lock indicator
+mx-pin.py 0 0x4A M0 output dpll-freq-locked
+# M1 will serve as phase lock indicator
+mx-pin.py 0 0x4A M1 output dpll-phase-locked
+# asserting M2 high will have the dpll go into free-running state
+mx-pin.py 0 0x4A M2 input dpll-free-running 
+# M3 will be an accessible sys clock image 
+mx-pin.py 0 0x4A M3 output sysclk/32 
 ```
 
 ## Profile
