@@ -36,7 +36,7 @@ def main (argv):
         Limits the DDS tuning range"""),
         ("pull-in-high", int, [], """Set high pull-in range limit [binary mask].
         Limits the DDS tuning range"""),
-        ('open-offset', float, [], """Open Loop phase offset in [%% of pi radians]"""),
+        ('open-offset', float, [], u"""Open Loop phase offset in [%% of \u03A0 radians]"""),
         ('lock-offset', float, [], """Fixed phase locked offset in [s]"""),
         ('inc-step-size', float, [], """Phase lock offset incremental step size in [sec/step]"""),
         ('phase-slew-limit', float, [], """Set phase slew limit in [s/s]"""),
