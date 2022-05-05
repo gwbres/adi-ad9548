@@ -47,11 +47,14 @@ to restrict to supported operations, when operating an AD9547.
 
 * `calib.py`: to initiate a calibration process 
 * `distrib.py`: clock distribution and output signal management utility 
+* `dpll.py`: Digital PLL management utility, includes history and instantaneous phase control. 
 * `irq.py`: IRQ masking & clearing operations 
+* `mx-pin.py` : programmable I/O management (Mx pins) 
 * `power-down.py` : power saving and management utility
+* `profile.py` : profile storage area management and loading interface 
 * `regmap.py`: load / dump a register map into device 
-* `reset.py`: reset the device 
-* `status.py` : generate status monitoring, includes IRQ status report 
+* `reset.py`: reset operations 
+* `status.py` : status monitoring, includes IRQ status report 
 
 ## Register map
 
