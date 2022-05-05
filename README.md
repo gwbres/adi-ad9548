@@ -154,6 +154,64 @@ mx-pin.py 0 0x4A M2 input dpll-free-running
 mx-pin.py 0 0x4A M3 output sysclk/32 
 ```
 
+## Distribution
+
+`distrib.py` to control clock distribution
+and output signals.
+
+* `--source` is a special operation,
+sets clock distribution synchronization source.
+
+```shell
+# Set direct sync source
+distrib.py 0 0x4A --source direct
+# Change sync source
+distrib.py 0 0x4A --source dpll-feedback
+```
+
+* `--autosync` is a special operation,
+sets the autosync behavior
+
+```shell
+# disable autosync feature
+distrib.py 0 0x4A --autosync disabled
+# set to autosync on phase lock
+distrib.py 0 0x4A --autosync dpll-phase-lock
+```
+
+* All other flags require the `--channel` 
+flag to specify which Qx (output divider)
+or OUTx (output pin) we are configuring.
+It is possible to omit `--channel`, 
+in this scenario we assume `all` channels
+are targetted.
+
+* `cmos-phase`: phase in CMOS output mode
+* `polarity`: OUTx pin polarity 
+* `strength`: OUTx pin output current
+* `mode`: OUTx pin output mode (LVDS, LVPECL, ...)
+* `divider`: Qx division ratio
+
+It is possible to apply several configurations
+at once, but only to a single `--channel` target:
+
+```shell
+# set all OUTx pins to LVDS output mode
+distrib.py 0 0x4A --mode lvds
+# set OUT0 to LVPECL output mode
+distrib.py 0 0x4A --mode lvpecl --channel 0
+
+# Set OUT1 to CMOS with inverted polarity
+distrib.py 0 0x4A --mode cmos --polarity inverted --channel 1
+
+# Program Q0 and Q1 R=10_000_000
+# and Q2 and Q3 R=5_000_000
+distrib.py 0 0x4A --divider 10000000 --channel 0
+distrib.py 0 0x4A --divider 10000000 --channel 1
+distrib.py 0 0x4A --divider 5000000 --channel 2
+distrib.py 0 0x4A --divider 5000000 --channel 3
+```
+
 ## Profile
 
 AD9548 supports up to 8 internal profiles.  

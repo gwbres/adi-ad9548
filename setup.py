@@ -8,6 +8,7 @@ except ImportError:
 setup(name="adi-ad9548",
     scripts=[
         "calib.py",
+        "distrib.py",
         "irq.py",
         "mx-pin.py",
         "power-down.py",
