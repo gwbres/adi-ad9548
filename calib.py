@@ -38,6 +38,8 @@ def main (argv):
     r = read_data(handle, address, 0x0A02)
     write_data(handle, address, 0x0A02, r | 0x01) # request cal 
     write_data(handle, address, 0x0005, 0x01) # I/O update
+    write_data(handle, address, 0x0A02, r & (0x01^0xFF)) # clear for later
+    write_data(handle, address, 0x0005, 0x01) # I/O update
 
 if __name__ == "__main__":
     main(sys.argv[1:])
