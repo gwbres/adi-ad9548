@@ -295,6 +295,10 @@ dpll.py 0 0x48 --phase-slew-limit 10E-9
 * `--history-acc-timer`: history accumulation timer / period in [s]
 * `-h` for listing all other supported operations
 
+# Reference input
+
+`ref-input.py` to manage input reference signals.
+
 ## Profile
 
 AD9548 supports up to 8 internal profiles.  
