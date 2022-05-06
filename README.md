@@ -5,8 +5,7 @@
 
 Set of tools to interact & program AD9548,AD9547 integrated circuits, by Analog Devices.
 
-Use these tools to interact with newer chipsets
-[AD9546/45](https://github.com/gwbres/adi-ad9546)
+Use [these tools](https://github.com/gwbres/adi-ad9546) to interact with AD9546/45 newer chipsets
 
 These scripts are not Windows compatible.   
 These scripts expect a `/dev/i2c-X` entry, they do not manage the device
