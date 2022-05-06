@@ -30,6 +30,8 @@ def main (argv):
         help="I2C slv address",
     )
     flags = [
+        ('free-run', None, [], """Force device into free runing mode"""),
+        ('holdover', None, [], """Force device into holdover mode"""),
         ("tuning", float, [], """Set new free running tuning word [Hz]"""),
         ("tuning-apply", None, [], """Apply new tuning word"""),
         ("pull-in-low", int, [], """Set lower pull-in range limit [binary mask].
@@ -76,6 +78,17 @@ def main (argv):
     handle = SMBus()
     handle.open(int(args.bus))
     address = int(args.address, 16)
+
+    if args.free_run:
+        r = read_data(handle, address, 0x0A01)
+        write_data(handle, address, 0x0A01, r|0x02)
+        write_data(handle, address, 0x000F, 0x01) # i/o update
+        return 0 #special op
+    if args.holdover:
+        r = read_data(handle, address, 0x0A01)
+        write_data(handle, address, 0x0A01, r|0x04)
+        write_data(handle, address, 0x000F, 0x01) # i/o update
+        return 0 #special op
 
     if args.tuning:
         value = int(args.tuning, 16)

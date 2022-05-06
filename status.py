@@ -118,7 +118,7 @@ def main (argv):
         r = read_data(handle, address, 0x0000)
         status['serial']['spi']['unidirectionnal'] = bool((r&0x80)>>7)
         status['serial']['spi']['lsbf'] = bool((r&0x40)>>6)
-        status['serial']['spi']['long'] = bool((r&0x20)>>4)
+        status['serial']['spi']['long'] = bool((r&0x20)>>5)
         status['serial']['readback'] = {}
         r = read_data(handle, address, 0x0004)
         status['serial']['readback']['registered'] = bool(r&0x01)
@@ -185,6 +185,10 @@ def main (argv):
         status['dpll']['history'] = available[(r & 0x40)>>6]
         status['dpll']['active-ref-priority'] = (r & 0x38) >> 3
         status['dpll']['active-ref'] = references[r & 0x03]
+
+        r = read_data(handle, address, 0x0A01)
+        status['dpll']['forced-holdover'] = bool((r & 0x40)>>6)
+        status['dpll']['forced-freerun'] = bool((r & 0x20)>>5)
     
     if args.ref:
         status['ref'] = {}
@@ -199,6 +203,27 @@ def main (argv):
             status['ref']['c']['fast'] = bool((r & 0x02)>>1)
             status['ref']['c']['slow'] = bool((r & 0x01)>>0)
             base += 1
+
+        status['ref']['switching'] = {}
+        r = read_data(handle, address, 0x0A01)
+        select_modes = {
+            0: 'automatic',
+            1: 'fallback',
+            2: 'holdover',
+            3: 'manual',
+        }
+        selections = {
+            0: 'REFA',
+            1: 'REFAA',
+            2: 'REFB',
+            3: 'REFBB',
+            4: 'REFC',
+            5: 'REFCC',
+            6: 'REFD',
+            7: 'REFDD',
+        }
+        status['ref']['switching']['select-mode'] = select_modes[(r & 0x18)>>3]
+        status['ref']['switching']['ref-selection'] = selections[(r & 0x07)]
 
     if args.watchdog:
         count = read_data(handle, address, 0x0211)

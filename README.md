@@ -227,6 +227,14 @@ distrib.py 0 0x4A --divider 5000000 --channel 3
 `dpll.py` to operate and manage the Digital PLL core.   
 `dpll.py` supports all of its operations at once.
 
+* `--free-run` : force clock to free running state manually 
+* `--holdover` : force clock to holdover state manually
+
+```shell
+# force freerunning state manually
+dpll.py 0 0x48 --free-run
+```
+
 * `--tuning` : load a new (free running) frequency tuning word
 in [Hz]
 
