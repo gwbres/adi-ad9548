@@ -5,6 +5,7 @@
 # distrib.py: AD9548 clock distribution management
 #################################################################
 import sys
+import math
 import argparse
 from smbus import SMBus
 
