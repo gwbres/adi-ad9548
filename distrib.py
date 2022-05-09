@@ -138,11 +138,14 @@ def main (argv):
         return 0
     if args.source: # special op
         r = read_data(handle, address, 0x0402)
+        r &= 0xCF # mask out 
         write_data(handle, address, 0x0402, r | (sources[args.source]) << 4)
         write_data(handle, address, 0x0005, 0x01) # IO update
         return 0
     if args.autosync: # special op
-        write_data(handle, address, 0x0403, autosync[args.autosync]) 
+        r = read_data(handle, address, 0x0403)
+        r &= 0xFC # mask out
+        write_data(handle, address, 0x0403, r | autosync[args.autosync])
         write_data(handle, address, 0x0005, 0x01) # IO update
         return 0
    
@@ -152,10 +155,10 @@ def main (argv):
         else:
             bases = [0x0408 + int(args.channel)*4]
         for base in bases:
-            write_data(handle, address, base+0, args.divider & 0xFF) 
+            write_data(handle, address, base+0, args.divider & 0xFF)
             write_data(handle, address, base+1, (args.divider & 0xFF00)>>8)
             write_data(handle, address, base+2, (args.divider & 0xFF0000)>>16)
-            write_data(handle, address, base+3, (args.divider & 0xF000000)>>24)
+            write_data(handle, address, base+3, (args.divider & 0x3F000000)>>24)
         write_data(handle, address, 0x0005, 0x01) # IO update
         return 0
     
@@ -168,12 +171,16 @@ def main (argv):
     for base in bases:
         r = read_data(handle, address, base)
         if args.cmos_phase:
+            r &= 0xDF # mask bit out
             r |= phase[args.cmos_phase] << 5
         if args.polarity:
+            r &= 0xEF # mask bit out
             r |= polarity[args.polarity] << 4
         if args.strength:
+            r &= 0xFE # mask bit out
             r |= strengths[args.strength] << 3
         if args.mode:
+            r &= 0xF8 # mask bits out
             r |= modes[args.mode]
         write_data(handle, address, base, r)
     write_data(handle, address, 0x0005, 0x01) # IO update

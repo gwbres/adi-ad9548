@@ -243,11 +243,12 @@ def main (argv):
     for reg in regs:
         (addr, mask) = reg # IRQ mask reg
         if args.clear:
-            addr += 0x7FB # IRQ clear reg offset
+            addr += 0x7FB # clear REG offset
         
         r = read_data(handle, address, addr)
         if args.disable: # clear desired bit(s)
-            write_data(handle, address, addr, r & (mask^0xFF))
+            r &= (mask ^0xFF) # mask out
+            write_data(handle, address, addr, r)
         else: # assert desired bit(s)
             write_data(handle, address, addr, r | mask)
     write_data(handle, address, 0x0005, 0x01)

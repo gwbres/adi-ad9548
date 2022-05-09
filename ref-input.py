@@ -84,8 +84,8 @@ def main (argv):
             mask |= logics[args.logic] << 2
             mask |= logics[args.logic] << 4
             mask |= logics[args.logic] << 6
-            write_data(handle, address, 0x0501, mask) # assign all
-            write_data(handle, address, 0x0502, mask) # assign all
+            write_data(handle, address, 0x0501, mask) # BB/B/A/AA: assign all
+            write_data(handle, address, 0x0502, mask) # DD/D/C/CC: assign all
         else:
             mask = logics[args.logic] 
             if (args.ref == "aa") or (args.ref == "cc"):
@@ -99,9 +99,8 @@ def main (argv):
             else:
                 addr = 0x0501
             r = read_data(handle, address, addr)
-            r &= (mask ^0xFF) # clear bit(s)
-            write_data(handle, address, addr, r|mask) # assign bit(s)
-
+            r &= (mask ^0xFF) # clear bits
+            write_data(handle, address, addr, r|mask) # assign bits
     write_data(handle, address, 0x000F, 0x01) # i/o update
 
 if __name__ == "__main__":
