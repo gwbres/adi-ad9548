@@ -7,28 +7,18 @@
 import sys
 import math
 import argparse
-from smbus import SMBus
-
-def write_data (handle, dev, addr, data):
-    msb = (addr & 0xFF00)>>8
-    lsb = addr & 0xFF
-    handle.write_i2c_block_data(dev, msb, [lsb, data])
-def read_data (handle, dev, addr):
-    msb = (addr & 0xFF00)>>8
-    lsb = addr & 0xFF
-    handle.write_i2c_block_data(dev, msb, [lsb])
-    data = handle.read_byte(dev)
-    return data
-
+from ad9548 import *
 def main (argv):
     parser = argparse.ArgumentParser(description="AD9548 clock distribution tool")
     parser.add_argument(
         "bus",
-        help="I2C bus",
+        type=int,
+        help="I2C bus (int)",
     )
     parser.add_argument(
         "address",
-        help="I2C slv address",
+        type=str,
+        help="I2C slv address (hex)",
     )
     flags = [
         ('free-run', None, [], """Force device into free runing mode"""),
@@ -74,79 +64,75 @@ def main (argv):
                     help=v_helper,
                 )
     args = parser.parse_args(argv)
-
     # open device
-    handle = SMBus()
-    handle.open(int(args.bus))
-    address = int(args.address, 16)
+    dev = AD9548(args.bus, int(args.address, 16))
 
     if args.free_run:
-        r = read_data(handle, address, 0x0A01)
-        write_data(handle, address, 0x0A01, r|0x02)
-        write_data(handle, address, 0x000F, 0x01) # i/o update
+        r = dev.read_data(0x0A01)
+        dev.write_data(0x0A01, r|0x02)
+        dev.io_update()
         return 0 #special op
     if args.holdover:
-        r = read_data(handle, address, 0x0A01)
-        write_data(handle, address, 0x0A01, r|0x04)
-        write_data(handle, address, 0x000F, 0x01) # i/o update
+        r = dev.read_data(0x0A01)
+        dev.write_data(0x0A01, r|0x04)
+        dev.io_update()
         return 0 #special op
 
     if args.tuning:
         value = int(args.tuning, 16)
-        write_data(handle, address, 0x0300, value & 0xFF)
-        write_data(handle, address, 0x0301, (value & 0xFF00)>>8)
-        write_data(handle, address, 0x0302, (value & 0xFF0000)>>16)
-        write_data(handle, address, 0x0303, (value & 0xFF000000)>>24)
-        write_data(handle, address, 0x0304, (value & 0xFF00000000)>>32)
-        write_data(handle, address, 0x0305, (value & 0xFF0000000000)>>40)
+        dev.write_data(0x0300, value & 0xFF)
+        dev.write_data(0x0301, (value & 0xFF00)>>8)
+        dev.write_data(0x0302, (value & 0xFF0000)>>16)
+        dev.write_data(0x0303, (value & 0xFF000000)>>24)
+        dev.write_data(0x0304, (value & 0xFF00000000)>>32)
+        dev.write_data(0x0305, (value & 0xFF0000000000)>>40)
     if args.tuning_apply:
-        write_data(handle, address, 0x0306, 0x01)
+        dev.write_data(0x0306, 0x01)
     if args.pull_in_low:
         value = int(args.pull_in_low, 16)
-        write_data(handle, address, 0x0307, value & 0xFF) 
-        write_data(handle, address, 0x0308, (value & 0xFF00)>>8) 
-        write_data(handle, address, 0x0309, (value & 0xFF0000)>>16) 
+        dev.write_data(0x0307, value & 0xFF) 
+        dev.write_data(0x0308, (value & 0xFF00)>>8) 
+        dev.write_data(0x0309, (value & 0xFF0000)>>16) 
     if args.pull_in_high:
         value = int(args.pull_in_high, 16)
-        write_data(handle, address, 0x030A, value & 0xFF) 
-        write_data(handle, address, 0x030B, (value & 0xFF00)>>8) 
-        write_data(handle, address, 0x030C, (value & 0xFF0000)>>16) 
+        dev.write_data(0x030A, value & 0xFF) 
+        dev.write_data(0x030B, (value & 0xFF00)>>8) 
+        dev.write_data(0x030C, (value & 0xFF0000)>>16) 
     if args.open_offset:
         value = round(args.open_offset * math.pi /100 * pow(2,15))
-        write_data(handle, address, 0x030D, value & 0xFF) 
-        write_data(handle, address, 0x030E, (value & 0xFF00)>>8) 
+        dev.write_data(0x030D, value & 0xFF) 
+        dev.write_data(0x030E, (value & 0xFF00)>>8) 
     if args.lock_offset:
         value = round(args.lock_offset * pow(10,12))
-        write_data(handle, address, 0x030F, value & 0xFF) 
-        write_data(handle, address, 0x0310, (value & 0xFF00)>>8) 
-        write_data(handle, address, 0x0311, (value & 0xFF0000)>>16) 
-        write_data(handle, address, 0x0312, (value & 0xFF0000)>>24) 
-        write_data(handle, address, 0x0313, (value & 0xFF0000)>>32) 
+        dev.write_data(0x030F, value & 0xFF) 
+        dev.write_data(0x0310, (value & 0xFF00)>>8) 
+        dev.write_data(0x0311, (value & 0xFF0000)>>16) 
+        dev.write_data(0x0312, (value & 0xFF0000)>>24) 
+        dev.write_data(0x0313, (value & 0xFF0000)>>32) 
     if args.inc_step_size:
         value = round(args.inc_step_size * pow(10,12))
-        write_data(handle, address, 0x0314, value & 0xFF)
-        write_data(handle, address, 0x0315, (value & 0xFF00)>>8)
+        dev.write_data(0x0314, value & 0xFF)
+        dev.write_data(0x0315, (value & 0xFF00)>>8)
     if args.phase_slew_limit:
         value = round(args.phase_slew_limit * pow(10,9))
-        write_data(handle, address, 0x0316, value & 0xFF)
-        write_data(handle, address, 0x0317, (value & 0xFF00)>>8)
+        dev.write_data(0x0316, value & 0xFF)
+        dev.write_data(0x0317, (value & 0xFF00)>>8)
     if args.history_acc_timer:
         value = round(args.history_acc_timer * pow(10,3))
-        write_data(handle, address, 0x0318, value & 0xFF)
-        write_data(handle, address, 0x0319, (value & 0xFF00)>>8)
-        write_data(handle, address, 0x031A, (value & 0xFF0000)>>16)
-    r = read_data(handle, address, 0x031B)
+        dev.write_data(0x0318, value & 0xFF)
+        dev.write_data(0x0319, (value & 0xFF00)>>8)
+        dev.write_data(0x031A, (value & 0xFF0000)>>16)
+    r = dev.read_data(0x031B)
     if args.single_sample_fallback:
-        write_data(handle, address, 0x031B, r | 0x10)
+        dev.write_data(0x031B, r | 0x10)
     else:
-        write_data(handle, address, 0x031B, r & (0x10^0xFF)) # mask out
+        dev.write_data(0x031B, r & (0x10^0xFF)) # mask out
     if args.persistent_history:
-        write_data(handle, address, 0x031B, r | 0x08)
+        dev.write_data(0x031B, r | 0x08)
     else:
-        write_data(handle, address, 0x031B, r & (0x08^0xFF)) # mask out
+        dev.write_data(0x031B, r & (0x08^0xFF)) # mask out
     if args.k:
-        write_data(handle, address, 0x031B, r |(args.k & 0x07)) 
-
-    write_data(handle, address, 0x0005, 0x01) # i/o update
+        dev.write_data(0x031B, r |(args.k & 0x07)) 
+    dev.io_update()
 if __name__ == "__main__":
     main(sys.argv[1:])

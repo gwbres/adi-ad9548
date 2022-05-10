@@ -6,28 +6,18 @@
 #################################################################
 import sys
 import argparse
-from smbus import SMBus
-
-def write_data (handle, dev, addr, data):
-    msb = (addr & 0xFF00)>>8
-    lsb = addr & 0xFF
-    handle.write_i2c_block_data(dev, msb, [lsb, data])
-def read_data (handle, dev, addr):
-    msb = (addr & 0xFF00)>>8
-    lsb = addr & 0xFF
-    handle.write_i2c_block_data(dev, msb, [lsb])
-    data = handle.read_byte(dev)
-    return data
-
+from ad9548 import *
 def main (argv):
     parser = argparse.ArgumentParser(description="AD9548 reference inputs management")
     parser.add_argument(
         "bus",
-        help="I2C bus",
+        type=int,
+        help="I2C bus (int)",
     )
     parser.add_argument(
         "address",
-        help="I2C slv address",
+        type=str,
+        help="I2C slv address (hex)",
     )
     flags = [
         ('switching-mode', str, ['automatic','fallback','holdover','manual'],
@@ -62,14 +52,10 @@ def main (argv):
         Defaults to `all`. Aux-x means auxilary-x input reference, when feasible.""",
     )
     args = parser.parse_args(argv)
-
     pin = args.pin
     ref = args.ref
-
     # open device
-    handle = SMBus()
-    handle.open(int(args.bus))
-    address = int(args.address, 16)
+    dev = AD9548(args.bus, int(args.address, 16))
 
     logics = {
         'disabled':  0,
@@ -84,8 +70,8 @@ def main (argv):
             mask |= logics[args.logic] << 2
             mask |= logics[args.logic] << 4
             mask |= logics[args.logic] << 6
-            write_data(handle, address, 0x0501, mask) # BB/B/A/AA: assign all
-            write_data(handle, address, 0x0502, mask) # DD/D/C/CC: assign all
+            dev.write_data(0x0501, mask) # BB/B/A/AA: assign all
+            dev.write_data(0x0502, mask) # DD/D/C/CC: assign all
         else:
             mask = logics[args.logic] 
             if (args.ref == "aa") or (args.ref == "cc"):
@@ -98,10 +84,9 @@ def main (argv):
                 addr = 0x0502
             else:
                 addr = 0x0501
-            r = read_data(handle, address, addr)
+            r = dev.read_data(addr)
             r &= (mask ^0xFF) # clear bits
-            write_data(handle, address, addr, r|mask) # assign bits
-    write_data(handle, address, 0x000F, 0x01) # i/o update
-
+            dev.write_data(addr, r|mask) # assign bits
+    dev.io_update()
 if __name__ == "__main__":
     main(sys.argv[1:])

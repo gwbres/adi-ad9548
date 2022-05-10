@@ -6,28 +6,18 @@
 #################################################################
 import sys
 import argparse
-from smbus import SMBus
-
-def write_data (handle, dev, addr, data):
-    msb = (addr & 0xFF00)>>8
-    lsb = addr & 0xFF
-    handle.write_i2c_block_data(dev, msb, [lsb, data])
-def read_data (handle, dev, addr):
-    msb = (addr & 0xFF00)>>8
-    lsb = addr & 0xFF
-    handle.write_i2c_block_data(dev, msb, [lsb])
-    data = handle.read_byte(dev)
-    return data
-
+from ad9548 import *
 def main (argv):
     parser = argparse.ArgumentParser(description="AD9548 mx-pin programmable i/o")
     parser.add_argument(
         "bus",
-        help="I2C bus",
+        type=int,
+        help="I2C bus (int)",
     )
     parser.add_argument(
         "address",
-        help="I2C slv address",
+        type=str,
+        help="I2C slv address (hex)",
     )
     io = {
         'input': 0,
@@ -160,10 +150,8 @@ def main (argv):
         type=str,
     )
     args = parser.parse_args(argv)
-
-    handle = SMBus()
-    handle.open(int(args.bus))
-    address = args.address
+    # open device
+    dev = AD9548(args.bus, int(args.address,16))
 
     pin = args.pin
     pin_n = int(pin.strip("M"))
@@ -173,8 +161,8 @@ def main (argv):
     base = 0x0200 + pin_n
     r = io << 7
     r |= macro
-    write_data(handle, address, base, r) 
-    write_data(handle, address, 0x0005, 0x01) # IO update
+    dev.write_data(base, r) 
+    dev.io_update()
 
 if __name__ == "__main__":
     main(sys.argv[1:])

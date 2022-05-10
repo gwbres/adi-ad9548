@@ -7,6 +7,7 @@ except ImportError:
 
 setup(name="adi-ad9548",
     scripts=[
+        "ad9548.py",
         "calib.py",
         "distrib.py",
         "dpll.py",

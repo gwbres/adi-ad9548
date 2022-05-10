@@ -6,28 +6,18 @@
 #################################################################
 import sys
 import argparse
-from smbus import SMBus
-
-def write_data (handle, dev, addr, data):
-    msb = (addr & 0xFF00)>>8
-    lsb = addr & 0xFF
-    handle.write_i2c_block_data(dev, msb, [lsb, data])
-def read_data (handle, dev, addr):
-    msb = (addr & 0xFF00)>>8
-    lsb = addr & 0xFF
-    handle.write_i2c_block_data(dev, msb, [lsb])
-    data = handle.read_byte(dev)
-    return data
-
+from ad9548 import *
 def main (argv):
     parser = argparse.ArgumentParser(description="AD9548 clock distribution tool")
     parser.add_argument(
         "bus",
-        help="I2C bus",
+        type=int,
+        help="I2C bus (int)",
     )
     parser.add_argument(
         "address",
-        help="I2C slv address",
+        type=str,
+        help="I2C slv address (hex)",
     )
     parser.add_argument(
         "--channel",
@@ -92,11 +82,8 @@ def main (argv):
                     help=v_helper,
                 )
     args = parser.parse_args(argv)
-
     # open device
-    handle = SMBus()
-    handle.open(int(args.bus))
-    address = int(args.address, 16)
+    dev = AD9548(args.bus, int(args.address,16))
 
     sources = {
         'direct': 0,
@@ -130,23 +117,23 @@ def main (argv):
     }
 
     if args.sync: # special op
-        r = read_data(handle, address, 0x0A02)
-        write_data(handle, address, 0x0A02, r | 0x02) # assert
-        write_data(handle, address, 0x0005, 0x01) # I/O update
-        write_data(handle, address, 0x0A02, r & (0x02^0xFF)) # deassert 
-        write_data(handle, address, 0x0005, 0x01) # I/O update
+        r = dev.read_data(0x0A02)
+        dev.write_data(0x0A02, r | 0x02) # assert
+        dev.io_update()
+        dev.write_data(0x0A02, r & (0x02^0xFF)) # deassert 
+        dev.io_update()
         return 0
     if args.source: # special op
-        r = read_data(handle, address, 0x0402)
+        r = dev.read_data(0x0402)
         r &= 0xCF # mask out 
-        write_data(handle, address, 0x0402, r | (sources[args.source]) << 4)
-        write_data(handle, address, 0x0005, 0x01) # IO update
+        dev.write_data(0x0402, r | (sources[args.source]) << 4)
+        dev.io_update()
         return 0
     if args.autosync: # special op
-        r = read_data(handle, address, 0x0403)
+        r = dev.read_data(0x0403)
         r &= 0xFC # mask out
-        write_data(handle, address, 0x0403, r | autosync[args.autosync])
-        write_data(handle, address, 0x0005, 0x01) # IO update
+        dev.write_data(0x0403, r | autosync[args.autosync])
+        dev.io_update()
         return 0
    
     if args.divider: # Qx DIV
@@ -155,11 +142,11 @@ def main (argv):
         else:
             bases = [0x0408 + int(args.channel)*4]
         for base in bases:
-            write_data(handle, address, base+0, args.divider & 0xFF)
-            write_data(handle, address, base+1, (args.divider & 0xFF00)>>8)
-            write_data(handle, address, base+2, (args.divider & 0xFF0000)>>16)
-            write_data(handle, address, base+3, (args.divider & 0x3F000000)>>24)
-        write_data(handle, address, 0x0005, 0x01) # IO update
+            dev.write_data(base+0, args.divider & 0xFF)
+            dev.write_data(base+1, (args.divider & 0xFF00)>>8)
+            dev.write_data(base+2, (args.divider & 0xFF0000)>>16)
+            dev.write_data(base+3, (args.divider & 0x3F000000)>>24)
+        dev.io_update()
         return 0
     
     # other op
@@ -169,7 +156,7 @@ def main (argv):
         bases = [0x0408 + int(args.channel)]
 
     for base in bases:
-        r = read_data(handle, address, base)
+        r = dev.read_data(base)
         if args.cmos_phase:
             r &= 0xDF # mask bit out
             r |= phase[args.cmos_phase] << 5
@@ -182,7 +169,7 @@ def main (argv):
         if args.mode:
             r &= 0xF8 # mask bits out
             r |= modes[args.mode]
-        write_data(handle, address, base, r)
-    write_data(handle, address, 0x0005, 0x01) # IO update
+        dev.write_data(base, r)
+    dev.io_update()
 if __name__ == "__main__":
     main(sys.argv[1:])

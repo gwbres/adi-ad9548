@@ -6,28 +6,18 @@
 #################################################################
 import sys
 import argparse
-from smbus import SMBus
-
-def write_data (handle, dev, addr, data):
-    msb = (addr & 0xFF00)>>8
-    lsb = addr & 0xFF
-    handle.write_i2c_block_data(dev, msb, [lsb, data])
-def read_data (handle, dev, addr):
-    msb = (addr & 0xFF00)>>8
-    lsb = addr & 0xFF
-    handle.write_i2c_block_data(dev, msb, [lsb])
-    data = handle.read_byte(dev)
-    return data
-
+from ad9548 import *
 def main (argv):
     parser = argparse.ArgumentParser(description="AD9548 IRQ clearing/masking tool")
     parser.add_argument(
         "bus",
-        help="I2C bus",
+        type=int,
+        help="I2C bus (int)",
     )
     parser.add_argument(
         "address",
-        help="I2C slv address",
+        type=str,
+        help="I2C slv address (hex)",
     )
     parser.add_argument(
         "--pin",
@@ -99,11 +89,8 @@ def main (argv):
             help=helper,
         )
     args = parser.parse_args(argv)
-
     # open device
-    handle = SMBus()
-    handle.open(int(args.bus))
-    address = int(args.address, 16)
+    dev = AD9548(args.bus, int(args.address,16))
 
     modes = {
         'nmos': 0,
@@ -115,17 +102,17 @@ def main (argv):
     if args.pin:
         # pin special op
         mode = modes[args.pin]
-        r = read_data(handle, address, 0x0208)
-        write_data(handle, address, 0x0208, r | mode)
-        write_data(handle, address, 0x0005, 0x01)
+        r = dev.read_data(0x0208)
+        dev.write_data(0x0208, r | mode)
+        dev.io_update()
         return 0 # terminate
 
     if args.all:
         if args.clear:
             # clear all: special op
-            r = read_data(handle, address, 0x0A03)
-            write_data(handle, address, 0x0A03, r | 0x02)
-            write_data(handle, address, 0x0005, 0x01)
+            r = dev.read_data(0x0A03)
+            dev.write_data(0x0A03, r | 0x02)
+            dev.io_update()
             return 0 # special op
         elif args.enable:
             # enable all: special op
@@ -141,8 +128,8 @@ def main (argv):
             ]
             for reg in regs:
                 (base, mask) = reg
-                write_data(handle, address, base, mask)
-            write_data(handle, address, 0x0005, 0x01)
+                dev.write_data(base, mask)
+            dev.io_update()
             return 0 # special op
         elif args.disable:
             # disable all: special op
@@ -158,8 +145,8 @@ def main (argv):
             ]
             for reg in regs:
                 (base, mask) = reg
-                write_data(handle, address, base, mask)
-            write_data(handle, address, 0x0005, 0x01)
+                dev.write_data(base, mask)
+            dev.io_update()
             return 0 # special op
  
     regs = []
@@ -245,13 +232,13 @@ def main (argv):
         if args.clear:
             addr += 0x7FB # clear REG offset
         
-        r = read_data(handle, address, addr)
+        r = dev.read_data(addr)
         if args.disable: # clear desired bit(s)
             r &= (mask ^0xFF) # mask out
-            write_data(handle, address, addr, r)
+            dev.write_data(addr, r)
         else: # assert desired bit(s)
-            write_data(handle, address, addr, r | mask)
-    write_data(handle, address, 0x0005, 0x01)
+            dev.write_data(addr, r | mask)
+    dev.io_update()
 
 if __name__ == "__main__":
     main(sys.argv[1:])

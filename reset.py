@@ -2,32 +2,22 @@
 #################################################################
 # Guillaume W. Bres, 2022          <guillaume.bressaix@gmail.com>
 #################################################################
-# reset.py: reset AD9548,47 device
+# reset.py: AD9548 device reset utility
 #################################################################
 import sys
 import argparse
-from smbus import SMBus
-
-def write_data (handle, dev, addr, data):
-    msb = (addr & 0xFF00)>>8
-    lsb = addr & 0xFF
-    handle.write_i2c_block_data(dev, msb, [lsb, data])
-def read_data (handle, dev, addr):
-    msb = (addr & 0xFF00)>>8
-    lsb = addr & 0xFF
-    handle.write_i2c_block_data(dev, msb, [lsb])
-    data = handle.read_byte(dev)
-    return data
-
+from ad9548 import *
 def main (argv):
     parser = argparse.ArgumentParser(description="AD9548 reset tool")
     parser.add_argument(
         "bus",
-        help="I2C bus",
+        type=int,
+        help="I2C bus (int)",
     )
     parser.add_argument(
         "address",
-        help="I2C slv address",
+        type=str,
+        help="I2C slv address (hex)",
     )
     flags = [
         ('soft', 'Performs a soft reset but maintains current registers value'),
@@ -45,33 +35,29 @@ def main (argv):
             help=helper,
         )
     args = parser.parse_args(argv)
-
     # open device
-    handle = SMBus()
-    handle.open(int(args.bus))
-    address = int(args.address, 16)
-
+    dev = AD9548(args.bus, int(args.address,16)) 
     if args.soft:
-        reg = read_data(handle, address, 0x0A00)
-        write_data(handle, address, 0x0000, reg | 0x01 | 0x80)
-        write_data(handle, address, 0x0000, reg)
+        reg = dev.read_data(0x0A00)
+        dev.write_data(0x0000, reg | 0x01 | 0x80)
+        dev.write_data(0x0000, reg)
     if args.watchdog:
-        reg = read_data(handle, address, 0x0A03)
-        write_data(handle, address, 0x0A03, reg | 0x01)
+        reg = dev.read_data(0x0A03)
+        dev.write_data(0x0A03, reg | 0x01)
     if args.lf:
-        reg = read_data(handle, address, 0x0A03)
-        write_data(handle, address, 0x0A03, reg | 0x40)
+        reg = dev.read_data(0x0A03)
+        dev.write_data(0x0A03, reg | 0x40)
     if args.cci:
-        reg = read_data(handle, address, 0x0A03)
-        write_data(handle, address, 0x0A03, reg | 0x20)
+        reg = dev.read_data(0x0A03)
+        dev.write_data(0x0A03, reg | 0x20)
     if args.phase:
-        reg = read_data(handle, address, 0x0A03)
-        write_data(handle, address, 0x0A03, reg | 0x10)
+        reg = dev.read_data(0x0A03)
+        dev.write_data(0x0A03, reg | 0x10)
     if args.autosync:
-        reg = read_data(handle, address, 0x0A03)
-        write_data(handle, address, 0x0A03, reg | 0x08)
+        reg = dev.read_data(0x0A03)
+        dev.write_data(0x0A03, reg | 0x08)
     if args.history:
-        reg = read_data(handle, address, 0x0A03)
-        write_data(handle, address, 0x0A03, reg | 0x04)
+        reg = dev.read_data(0x0A03)
+        dev.write_data(0x0A03, reg | 0x04)
 if __name__ == "__main__":
     main(sys.argv[1:])

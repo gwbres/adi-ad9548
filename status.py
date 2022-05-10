@@ -8,14 +8,7 @@ import sys
 import math
 import json
 import argparse
-from smbus import SMBus
-
-def read_data (handle, dev, addr):
-    msb = (addr & 0xFF00)>>8
-    lsb = addr & 0xFF
-    handle.write_i2c_block_data(dev, msb, [lsb])
-    data = handle.read_byte(dev)
-    return data
+from ad9548 import *
 
 def main (argv):
     parser = argparse.ArgumentParser(description="AD9547/48 status reporting")
@@ -47,11 +40,8 @@ def main (argv):
             help=_helper,
         )
     args = parser.parse_args(argv)
-
     # open device
-    handle = SMBus()
-    handle.open(int(args.bus))
-    address = int(args.address, 16)
+    dev = AD9548(args.bus, int(args.address,16))
 
     enabled = {
         0: 'disabled',
@@ -109,52 +99,52 @@ def main (argv):
     status = {}
     if args.info:
         status['info'] = {}
-        status['info']['rev'] = hex(read_data(handle, address, 0x0002))
-        status['info']['id']  = hex(read_data(handle, address, 0x0003))
+        status['info']['rev'] = hex(dev.read_data(0x0002))
+        status['info']['id']  = hex(dev.read_data(0x0003))
     
     if args.serial:
         status['serial'] = {}
         status['serial']['spi'] = {}
-        r = read_data(handle, address, 0x0000)
+        r = dev.read_data(0x0000)
         status['serial']['spi']['unidirectionnal'] = bool((r&0x80)>>7)
         status['serial']['spi']['lsbf'] = bool((r&0x40)>>6)
         status['serial']['spi']['long'] = bool((r&0x20)>>5)
         status['serial']['readback'] = {}
-        r = read_data(handle, address, 0x0004)
+        r = dev.read_data(0x0004)
         status['serial']['readback']['registered'] = bool(r&0x01)
-        r = read_data(handle, address, 0x0D00)
+        r = dev.read_data(0x0D00)
         status['serial']['readback']['fault-detected'] = bool((r&0x04)>>2)
         status['serial']['readback']['loading'] = bool((r&0x02)>>1)
         status['serial']['readback']['saving'] = bool(r&0x01)
     
     if args.sysclk:
         status['sysclk'] = {}
-        r = read_data(handle, address, 0x0100)
+        r = dev.read_data(0x0100)
         status['sysclk']['loop-filter'] = loop_filter_ext((r & 0x80)>>7)
         status['sysclk']['charge-pump'] = (r & 0x40)>>6
         status['sysclk']['charge-pump-current'] = cpump_currents[(r & 0x38)>>3]
         status['sysclk']['lock-detect-timer'] = disabled[(r & 0x04)>>2]
         status['sysclk']['lock-detect-depth'] = lock_det_depths[r & 0x03]
-        status['sysclk']['fb-n-divider'] = read_data(handle, address, 0x0101)
+        status['sysclk']['fb-n-divider'] = dev.read_data(0x0101)
 
-        r = read_data(handle, address, 0x0102)
+        r = dev.read_data(0x0102)
         status['sysclk']['m-div-reset'] = bool((r & 0x40)>>6) 
         status['sysclk']['m-div'] = int(pow(2,(r & 0x30)>>4))
         status['sysclk']['freq-doubler'] = enabled[(r & 0x08)>>3]
         status['sysclk']['pll'] = enabled[(r & 0x04)>>2]
         status['sysclk']['source'] = sysclk_sources[r & 0x03]
          
-        period = read_data(handle, address, 0x0103)
-        period += read_data(handle, address, 0x0104) << 8
-        period += (read_data(handle, address, 0x0105) & 0x0F) << 16
+        period = dev.read_data(0x0103)
+        period += dev.read_data(0x0104) << 8
+        period += (dev.read_data(0x0105) & 0x0F) << 16
         status['sysclk']['freq'] = 1.0/(period*pow(10,-15)) # fs
 
-        period = read_data(handle, address, 0x0106)
-        period += read_data(handle, address, 0x0107) << 8
-        period += (read_data(handle, address, 0x0108) & 0x0F) << 16
+        period = dev.read_data(0x0106)
+        period += dev.read_data(0x0107) << 8
+        period += (dev.read_data(0x0108) & 0x0F) << 16
         status['sysclk']['stability'] = period*pow(10,-3) # ms
 
-        r = read_data(handle, address, 0x0D01)
+        r = dev.read_data(0x0D01)
         status['sysclk']['stable'] = bool((r&0x10)>>4)
         status['sysclk']['calibrating'] = bool((r&0x02)>>1)
         status['sysclk']['locked'] = bool(r&0x01)
@@ -163,7 +153,7 @@ def main (argv):
         base = 0x0200
         status['mx-pin'] = {}
         for i in range (8):
-            data = read_data(handle, address, base) 
+            data = dev.read_data(base) 
             status['mx-pin']['m{}'.format(i)] = {}
             status['mx-pin']['m{}'.format(i)]['output'] = (data & 0x80)>>7
             status['mx-pin']['m{}'.format(i)]['function'] = data & 0x7F
@@ -171,7 +161,7 @@ def main (argv):
     
     if args.dpll:
         status['dpll'] = {}
-        r = read_data(handle, address, 0x0D0A)
+        r = dev.read_data(0x0D0A)
         status['dpll']['offset-slew-limiting'] = bool((r & 0x80)>>7)
         status['dpll']['phase-build-out'] = bool((r & 0x40)>>6)
         status['dpll']['freq-locked'] = bool((r & 0x20)>>5)
@@ -180,13 +170,13 @@ def main (argv):
         status['dpll']['holdover'] = bool((r & 0x04)>>2)
         status['dpll']['active'] = bool((r & 0x02)>>1)
         status['dpll']['free-running'] = bool((r & 0x01)>>0)
-        r = read_data(handle, address, 0x0D0B)
+        r = dev.read_data(0x0D0B)
         status['dpll']['freq-clamped'] = bool((r & 0x80)>>7)
         status['dpll']['history'] = available[(r & 0x40)>>6]
         status['dpll']['active-ref-priority'] = (r & 0x38) >> 3
         status['dpll']['active-ref'] = references[r & 0x03]
 
-        r = read_data(handle, address, 0x0A01)
+        r = dev.read_data(0x0A01)
         status['dpll']['forced-holdover'] = bool((r & 0x40)>>6)
         status['dpll']['forced-freerun'] = bool((r & 0x20)>>5)
     
@@ -195,7 +185,7 @@ def main (argv):
         base = 0x0D0C
         for c in ['a','aa','b','bb','c','cc','d','dd']:
             status['ref']['ref-{}'.format(c)] = {}
-            r = read_data(handle, address, base)
+            r = dev.read_data(base)
             status['ref']['c']['profile-selected'] = bool((r & 0x80)>>7)
             status['ref']['c']['selected-profile'] = (r & 0x70)>>6
             status['ref']['c']['valid'] = bool((r & 0x08)>>3)
@@ -205,7 +195,7 @@ def main (argv):
             base += 1
 
         status['ref']['switching'] = {}
-        r = read_data(handle, address, 0x0A01)
+        r = dev.read_data(0x0A01)
         select_modes = {
             0: 'automatic',
             1: 'fallback',
@@ -226,17 +216,17 @@ def main (argv):
         status['ref']['switching']['ref-selection'] = selections[(r & 0x07)]
 
     if args.watchdog:
-        count = read_data(handle, address, 0x0211)
-        count += read_data(handle, address, 0x0212) << 8
+        count = dev.read_data(0x0211)
+        count += dev.read_data(0x0212) << 8
         status['watchdog'] = count
     
     if args.tuning:
-        tuning = read_data(handle, address, 0x0D14)
-        tuning += read_data(handle, address, 0x0D15) << 8
-        tuning += read_data(handle, address, 0x0D16) << 16
-        tuning += read_data(handle, address, 0x0D17) << 24
-        tuning += read_data(handle, address, 0x0D18) << 32
-        tuning += read_data(handle, address, 0x0D19) << 40
+        tuning = dev.read_data(0x0D14)
+        tuning += dev.read_data(0x0D15) << 8
+        tuning += dev.read_data(0x0D16) << 16
+        tuning += dev.read_data(0x0D17) << 24
+        tuning += dev.read_data(0x0D18) << 32
+        tuning += dev.read_data(0x0D19) << 40
         status['tuning'] = tuning
 
     if args.irq:
@@ -244,7 +234,7 @@ def main (argv):
         for category in ['sysclk','distrib','eeprom','dpll','watchdog']:
             status['irq'][category] = {}
         
-        r = read_data(handle, address, 0x0208)
+        r = dev.read_data(0x0208)
         modes = {
             0: 'nmos',
             1: 'pmos',
@@ -253,20 +243,20 @@ def main (argv):
         }
         status['irq']['pin'] = modes[r & 0x03] 
 
-        r = read_data(handle, address, 0x0D02)
+        r = dev.read_data(0x0D02)
         status['irq']['sysclk']['unlocked'] = bool((r & 0x20)>>5)
         status['irq']['sysclk']['locked'] = bool((r & 0x10)>>4)
         status['irq']['sysclk']['calibration'] = {}
         status['irq']['sysclk']['calibration']['done'] = bool((r & 0x02)>>1)
         status['irq']['sysclk']['calibration']['started'] = bool(r & 0x01)
         
-        r = read_data(handle, address, 0x0D03)
+        r = dev.read_data(0x0D03)
         status['irq']['distrib']['sync'] = bool((r & 0x08)>>3)
         status['irq']['watchdog']['expired'] = bool((r & 0x04)>>2)
         status['irq']['eeprom']['fault'] = bool((r & 0x02)>>1)
         status['irq']['eeprom']['complete'] = bool((r & 0x01)>>0)
         
-        r = read_data(handle, address, 0x0D04)
+        r = dev.read_data(0x0D04)
         status['irq']['dpll']['switching-ref'] = bool((r & 0x80)>>7)
         status['irq']['dpll']['closed-loop'] = bool((r & 0x40)>>6)
         status['irq']['dpll']['free-run'] = bool((r & 0x20)>>5)
@@ -282,7 +272,7 @@ def main (argv):
         for c in ['a','b','c','d']:
             status['irq']['ref-{:0}'.format(c)] = {}
             status['irq']['ref-{:0}{:0}'.format(c)] = {}
-            r = read_data(handle, address, base)
+            r = dev.read_data(base)
             status['irq']['ref-{:0}{:0}'.format(c)]['new-profile'] = bool((r & 0x80)>>7)
             status['irq']['ref-{:0}{:0}'.format(c)]['validated'] = bool((r & 0x40)>>6)
             status['irq']['ref-{:0}{:0}'.format(c)]['fault-cleared'] = bool((r & 0x20)>>5)
@@ -300,14 +290,14 @@ def main (argv):
 
     if args.eeprom:
         status['eeprom'] = {}
-        r = read_data(handle, address, 0x0E00)
+        r = dev.read_data(0x0E00)
         status['eeprom']['rate'] = eeprom_rates[(r & 0x02)>>1] 
         status['eeprom']['write-protection'] = disabled[r & 0x01]
-        r = read_data(handle, address, 0x0E01)
+        r = dev.read_data(0x0E01)
         status['eeprom']['download-condition'] = r & 0x1F
-        r = read_data(handle, address, 0x0E02)
+        r = dev.read_data(0x0E02)
         status['eeprom']['save-to'] = bool(r & 0x01)
-        r = read_data(handle, address, 0x0E03)
+        r = dev.read_data(0x0E03)
         status['eeprom']['load-from'] = bool((r & 0x02)>>1)
 
     print(json.dumps(status, sort_keys=True, indent=2))
